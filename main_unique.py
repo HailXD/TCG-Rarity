@@ -92,6 +92,23 @@ def is_rarity_banned(rarity_str):
     return any(banned in rarity_str for banned in BANNED_RARITY_WORDS)
 
 def process_deck_list(deck_content, db_path):
+    """
+    Processes the deck list to find the rarest legal printings.
+    
+    For Pokémon cards the function uses the "attacks" field for filtering.
+    For Trainer cards it uses a cleaned version of the card's name (removing any text in parentheses)
+    for filtering. Energy cards remain unchanged.
+    
+    This version assigns a printing for each copy needed in a round-robin fashion across the available candidate printings,
+    so that if multiple copies of the same card are required the code will cycle through the available legal printings.
+    
+    Args:
+        deck_content (str): The deck list as a multi-line string.
+        db_path (str): The path to the SQLite database file.
+    
+    Returns:
+        str: The processed deck list with updated card codes.
+    """
     if not os.path.exists(db_path):
         return f"Error: Database file not found at {db_path}"
 
@@ -103,15 +120,20 @@ def process_deck_list(deck_content, db_path):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
+        # Tracker for round-robin assignment for each unique card (by type and canonical name)
+        assignment_tracker = {}
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
 
+            # Headers (e.g., "Pokemon - 15", "Trainer - 35", "Energy - 10")
             if re.match(r"^\s*(Pokemon|Trainer|Energy)\s*-\s*\d+\s*$", line, re.IGNORECASE):
                 output_lines.append(line)
                 continue
 
+            # Basic energy lines (e.g., "2 Basic Darkness Energy")
             basic_energy_match = re.match(r"^\s*(\d+)\s+Basic\s+(.+?)\s+Energy(?:\s+(\d+))?\s*$", line, re.IGNORECASE)
             if basic_energy_match:
                 count = basic_energy_match.group(1)
@@ -119,14 +141,16 @@ def process_deck_list(deck_content, db_path):
                 output_lines.append(f"{count} {energy_type} Energy")
                 continue
 
+            # Card line (e.g., "3 Archaludon ex SSP 224")
             card_match = re.match(r"^\s*(\d+)\s+(.+?)\s+([A-Z0-9-]+)\s+([A-Za-z0-9]+)\s*$", line)
             if card_match:
-                count = card_match.group(1)
-                name = card_match.group(2).strip()
+                count = int(card_match.group(1))
+                original_name = card_match.group(2).strip()
                 set_id = card_match.group(3)
                 set_number = card_match.group(4)
-                original_line = f"{count} {name} {set_id} {set_number}"
+                original_line = f"{count} {original_name} {set_id} {set_number}"
 
+                # Get initial card data from the database.
                 cursor.execute(
                     f"SELECT name, supertype, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
                     (set_id, set_number)
@@ -134,12 +158,15 @@ def process_deck_list(deck_content, db_path):
                 initial_card_data = cursor.fetchone()
 
                 if not initial_card_data:
-                    output_lines.append(original_line)
+                    # If no match is found in the database, leave the line unchanged.
+                    for _ in range(count):
+                        output_lines.append(original_line)
                     continue
 
                 card_name_from_db = initial_card_data['name']
                 supertype = initial_card_data['supertype']
 
+                # Determine how to query based on the supertype.
                 if supertype == "Pokémon":
                     identifier_column = "attacks"
                     identifier_value = initial_card_data['attacks']
@@ -149,39 +176,49 @@ def process_deck_list(deck_content, db_path):
                     else:
                         query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} = ?"
                         params = (card_name_from_db, identifier_value)
+                    canonical_name = card_name_from_db
                 elif supertype == "Trainer":
                     cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
                     query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name LIKE ?"
                     params = (cleaned_name + '%',)
-                    card_name_from_db = cleaned_name
+                    canonical_name = cleaned_name
                 else:
-                    output_lines.append(original_line)
+                    for _ in range(count):
+                        output_lines.append(original_line)
                     continue
 
-                cursor.execute(query, params)
-                matching_cards = cursor.fetchall()
+                # Use a key based on card type and canonical name for round-robin assignment.
+                key = (supertype, canonical_name)
+                if key not in assignment_tracker:
+                    cursor.execute(query, params)
+                    matching_cards = cursor.fetchall()
+                    if not matching_cards:
+                        # No candidate printings found – output the original line for each copy.
+                        for _ in range(count):
+                            output_lines.append(original_line)
+                        continue
 
-                if not matching_cards:
-                    output_lines.append(original_line)
-                    continue
+                    # Sort the matching cards by rarity (using descending order so that the highest rarity comes first).
+                    sorted_cards = sorted(matching_cards, key=lambda card: get_rarity_sort_key(card['rarity']))
+                    sorted_cards = list(reversed(sorted_cards))
 
-                sorted_cards = sorted(
-                    matching_cards,
-                    key=lambda card: get_rarity_sort_key(card['rarity'])
-                )
+                    # Filter out any candidates with banned rarity words, if possible.
+                    candidate_printings = [card for card in sorted_cards if not is_rarity_banned(card['rarity'])]
+                    if not candidate_printings:
+                        candidate_printings = sorted_cards
 
-                best_set_id = set_id
-                best_set_number = set_number
+                    assignment_tracker[key] = {"candidates": candidate_printings, "counter": 0}
 
-                for card in reversed(sorted_cards):
-                    card_rarity = card['rarity']
-                    if not is_rarity_banned(card_rarity):
-                        best_set_id = card['set_id']
-                        best_set_number = card['set_number']
-                        break
+                tracker = assignment_tracker[key]
+                candidates = tracker["candidates"]
 
-                updated_line = f"{count} {card_name_from_db} {best_set_id} {best_set_number}"
-                output_lines.append(updated_line)
+                # For each copy needed, choose a printing in a round-robin fashion.
+                for _ in range(count):
+                    index = tracker["counter"] % len(candidates)
+                    chosen_printing = candidates[index]
+                    tracker["counter"] += 1
+                    updated_line = f"1 {canonical_name} {chosen_printing['set_id']} {chosen_printing['set_number']}"
+                    output_lines.append(updated_line)
             else:
                 output_lines.append(line)
 
@@ -193,63 +230,48 @@ def process_deck_list(deck_content, db_path):
 
     return "\n".join(output_lines)
 
-
-def compile_and_sort_deck_list(processed_deck, db_path=DB_FILE):
+def compile_and_sort_deck_list(processed_deck):
+    """
+    Compiles duplicate card entries in the processed deck list and sorts them.
+    It groups cards under their section (Pokemon, Trainer, Energy), aggregates counts for identical cards,
+    updates header counts, and sorts each group alphabetically by card details.
+    
+    Args:
+        processed_deck (str): The processed deck list as a multi-line string.
+    
+    Returns:
+        str: The compiled and sorted deck list.
+    """
     lines = processed_deck.strip().split("\n")
-    compiled = {'Pokémon': {}, 'Trainer': {}, 'Energy': {}}
-
-    if os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-    else:
-        conn = None
-        cursor = None
+    compiled = {}
+    category_order = []
+    current_category = None
 
     for line in lines:
-        card_match = re.match(r"^(\d+)\s+(.+)$", line)
-        if card_match:
-            count = int(card_match.group(1))
-            card_details = card_match.group(2).strip()
-
-            if "Energy" in card_details:
-                category = "Energy"
-            elif cursor:
-                parts = card_details.split()
-                if len(parts) >= 3:
-                    possible_set_number = parts[-1]
-                    possible_set_id = parts[-2]
-                    cursor.execute(
-                        f"SELECT supertype FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
-                        (possible_set_id, possible_set_number)
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        category = row['supertype']
-                    else:
-                        category = "Trainer"
+        header_match = re.match(r"^(Pokemon|Trainer|Energy)\s*-\s*\d+\s*$", line, re.IGNORECASE)
+        if header_match:
+            current_category = header_match.group(1)
+            if current_category not in compiled:
+                compiled[current_category] = {}
+                category_order.append(current_category)
+        else:
+            card_match = re.match(r"^(\d+)\s+(.+)$", line)
+            if card_match and current_category is not None:
+                count = int(card_match.group(1))
+                card_info = card_match.group(2).strip()
+                if card_info in compiled[current_category]:
+                    compiled[current_category][card_info] += count
                 else:
-                    category = "Trainer"
-            else:
-                category = "Trainer"
-
-            if card_details in compiled.get(category, {}):
-                compiled[category][card_details] += count
-            else:
-                compiled[category][card_details] = count
-
-    if conn:
-        conn.close()
+                    compiled[current_category][card_info] = count
 
     output_lines = []
-    for cat in ['Pokémon', 'Trainer', 'Energy']:
+    for cat in category_order:
         sorted_cards = sorted(compiled[cat].items(), key=lambda x: x[0])
         total_count = sum(count for _, count in sorted_cards)
         output_lines.append(f"{cat} - {total_count}")
         for card_info, count in sorted_cards:
             output_lines.append(f"{count} {card_info}")
     return "\n".join(output_lines)
-
 
 if __name__ == "__main__":
     processed_deck = process_deck_list(DECK_LIST_INPUT, DB_FILE)
