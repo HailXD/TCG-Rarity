@@ -1,6 +1,7 @@
 import sqlite3
 import re
 import os
+from pprint import pprint
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
