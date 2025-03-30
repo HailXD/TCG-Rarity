@@ -5,36 +5,33 @@ from pprint import pprint
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
-DECK_LIST_INPUT = """Pokemon - 17
-2 Brute Bonnet PAR 123
-2 Budew PRE 4
-1 Fezandipiti ex SFA 38
-1 Latias ex SSP 76
-2 Munkidori TWM 95
-3 Paldean Clodsire ex JTG 94
-4 Paldean Wooper PAF 58
-1 Pecharunt  149
-1 Pecharunt ex SFA 39
-Trainer - 34
-2 Ancient Booster Energy Capsule TEF 140
-4 Arven SVI 166
-3 Binding Mochi SFA 55
-1 Black Belt's Training PRE 96
-1 Boss’s Orders (Ghetsis) PAL 172
-2 Counter Catcher PAR 160
-1 Earthen Vessel PRE 106
-2 Energy Switch SVI 173
-2 Iono PAL 185
-2 Janine's Secret Art PRE 112
-4 Nest Ball SVI 181
-2 Night Stretcher SFA 61
-2 Perilous Jungle TEF 156
-1 Professor's Research PAF 87
-1 Super Rod PAL 188
-1 Switch SVI 194
-3 Ultra Ball SVI 196
-Energy - 9
-9 Basic Darkness Energy 15"""
+DECK_LIST_INPUT = """Pokemon - 15
+3 Iron Crown ex TEF 81
+2 Iron Hands TEF 61
+2 Iron Jugulis PAR 158
+2 Iron Thorns TEF 62
+2 Latias ex SSP 76
+3 Miraidon TEF 121
+1 Miraidon ex TEF 122
+Trainer - 30
+2 Ciphermaniac's Codebreaking PRE 104
+3 Crispin PRE 105
+2 Energy Retrieval SVI 171
+2 Energy Search BCR 128
+2 Energy Switch SSH 162
+4 Future Booster Energy Capsule PAR 164
+2 Larry's Skill PRE 115
+3 Miriam SVI 179
+1 Professor Turo's Scenario PAR 171
+1 Professor's Research PAF 88
+1 Reboot Pod TEF 158
+2 Super Rod PAL 188
+3 Techno Radar PAR 180
+2 Trekking Shoes CRZ 145
+Energy - 15
+8 Basic Lightning Energy 12
+5 Basic Psychic Energy 13
+2 Double Turbo Energy BRS 151"""
 
 RARITY_ORDER = [
     "None",
@@ -127,7 +124,7 @@ def process_deck_list(deck_content, db_path):
                 original_line = f"{count} {name} {set_id} {set_number}"
 
                 cursor.execute(
-                    f"SELECT name, supertype, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
+                    f"SELECT name, supertype, subtypes, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
                     (set_id, set_number)
                 )
                 initial_card_data = cursor.fetchone()
@@ -138,7 +135,7 @@ def process_deck_list(deck_content, db_path):
 
                 card_name_from_db = initial_card_data['name']
                 supertype = initial_card_data['supertype']
-
+                subtype = initial_card_data['subtypes']
                 if supertype == "Pokémon":
                     identifier_column = "attacks"
                     identifier_value = initial_card_data['attacks']
@@ -148,6 +145,14 @@ def process_deck_list(deck_content, db_path):
                     else:
                         query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} = ?"
                         params = (card_name_from_db, identifier_value)
+                elif supertype == "Energy":
+                    cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
+                    output_lines.append(f"{count} {cleaned_name}")
+                    continue
+                elif 'Item' in subtype:
+                    cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
+                    output_lines.append(f"{count} {cleaned_name}")
+                    continue
                 elif supertype == "Trainer":
                     cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
                     query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name LIKE ?"
