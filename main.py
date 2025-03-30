@@ -79,7 +79,6 @@ RARITY_MAP = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
 
 BANNED_RARITY_WORDS = ["Hyper", "Secret", "Shiny", "Rainbow"]
 
-
 def get_rarity_sort_key(rarity_str):
     """Gets the sort key for a given rarity string."""
     if rarity_str is None:
@@ -95,6 +94,10 @@ def is_rarity_banned(rarity_str):
 def process_deck_list(deck_content, db_path):
     """
     Processes the deck list to find the rarest legal printings.
+
+    For Pokémon cards, the function uses the "attacks" field for filtering and rarity sorting.
+    For Trainer cards, it uses a cleaned version of the card's name (with any text in parentheses removed)
+    for filtering and rarity sorting. Energy cards remain unchanged.
 
     Args:
         deck_content (str): The deck list as a multi-line string.
@@ -138,35 +141,36 @@ def process_deck_list(deck_content, db_path):
                 set_number = card_match.group(4)
                 original_line = f"{count} {name} {set_id} {set_number}"
 
-                cursor.execute(f"SELECT name, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?", (set_id, set_number))
+                cursor.execute(
+                    f"SELECT name, supertype, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
+                    (set_id, set_number)
+                )
                 initial_card_data = cursor.fetchone()
 
                 if not initial_card_data:
                     output_lines.append(original_line)
                     continue
 
-                name = initial_card_data['name']
-                identifier_attacks = initial_card_data['attacks']
-                identifier_rules = initial_card_data['rules']
-                identifier_column = None
-                identifier_value = None
+                card_name_from_db = initial_card_data['name']
+                supertype = initial_card_data['supertype']
 
-                if identifier_attacks is not None:
-                    identifier_column = 'attacks'
-                    identifier_value = identifier_attacks
-                elif identifier_rules is not None:
-                    identifier_column = 'rules'
-                    identifier_value = identifier_rules
+                if supertype == "Pokémon":
+                    identifier_column = "attacks"
+                    identifier_value = initial_card_data['attacks']
+                    if identifier_value is None:
+                        query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} IS NULL"
+                        params = (card_name_from_db,)
+                    else:
+                        query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} = ?"
+                        params = (card_name_from_db, identifier_value)
+                elif supertype == "Trainer":
+                    cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
+                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ?"
+                    params = (cleaned_name,)
+                    card_name_from_db = cleaned_name
                 else:
                     output_lines.append(original_line)
                     continue
-
-                if identifier_value is None:
-                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} IS NULL"
-                    params = (name,)
-                else:
-                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} = ?"
-                    params = (name, identifier_value)
 
                 cursor.execute(query, params)
                 matching_cards = cursor.fetchall()
@@ -191,8 +195,8 @@ def process_deck_list(deck_content, db_path):
                         best_set_number = card['set_number']
                         found_replacement = True
                         break
-                name = re.sub(r'\s*\(.*?\)', '', name)
-                updated_line = f"{count} {name} {best_set_id} {best_set_number}"
+
+                updated_line = f"{count} {card_name_from_db} {best_set_id} {best_set_number}"
                 output_lines.append(updated_line)
             else:
                 output_lines.append(line)
