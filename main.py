@@ -4,34 +4,39 @@ import os
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
-DECK_LIST_INPUT = """Pokemon - 15
-1 Umbreon VMAX BRS TG23
-3 Iron Crown ex TEF 81
-2 Iron Hands TEF 61
-2 Iron Jugulis PAR 158
-2 Iron Thorns TEF 62
-2 Latias ex SSP 76
-3 Miraidon TEF 121
-1 Miraidon ex TEF 122
-Trainer - 30
-2 Ciphermaniac's Codebreaking PRE 104
-3 Crispin PRE 105
+DECK_LIST_INPUT = """Pokemon - 14
+1 Applin TWM 185
+3 Applin TWM 126
+2 Dipplin TWM 18
+1 Hydrapple ex SCR 167
+2 Hydrapple ex SCR 156
+1 Mew ex MEW 205
+1 Teal Mask Ogerpon ex TWM 25
+1 Teal Mask Ogerpon ex TWM 221
+1 Teal Mask Ogerpon ex PRE 12
+1 Teal Mask Ogerpon ex TWM 190
+Trainer - 31
+1 Bosss Orders BRS 132
+1 Bosss Orders (Ghetsis) PAL 172
+2 Buddy-Buddy Poffin TEF 144
+2 Bug Catching Set PRE 102
+2 Bug Catching Set TWM 143
+1 Earthen Vessel PAR 163
 2 Energy Retrieval SVI 171
-2 Energy Search BCR 128
-2 Energy Switch SSH 162
-4 Future Booster Energy Capsule PAR 164
-2 Larry's Skill PRE 115
-3 Miriam SVI 179
-1 Professor Turo's Scenario PAR 171
-1 Professor's Research PAF 88
-1 Reboot Pod TEF 158
-2 Super Rod PAL 188
-3 Techno Radar PAR 180
-2 Trekking Shoes CRZ 145
+1 Iono PAF 80
+2 Iono PAL 185
+2 Nest Ball PAF 84
+2 Nest Ball SVI 181
+1 Night Stretcher SFA 61
+1 Prime Catcher TEF 157
+3 Professor's Research PRE 122
+1 Professor's Research (Professor Sada) SVI 189
+4 Rare Candy CRZ 141
+1 Super Rod PAL 188
+1 Ultra Ball SVI 196
+1 Ultra Ball PAF 91
 Energy - 15
-8 Basic Lightning Energy 12
-5 Basic Psychic Energy 13
-2 Double Turbo Energy BRS 151"""
+15 Basic Grass Energy"""
 
 RARITY_ORDER = [
     "None",
@@ -129,7 +134,7 @@ def process_deck_list(deck_content, db_path):
                 else:
                      output_lines.append(f"{count} {energy_type} Energy")
                 continue
-
+                
             card_match = re.match(r"^\s*(\d+)\s+(.+?)\s+([A-Z0-9-]+)\s+([A-Za-z0-9]+)\s*$", line)
             if card_match:
                 count = card_match.group(1)
@@ -142,9 +147,11 @@ def process_deck_list(deck_content, db_path):
                 initial_card_data = cursor.fetchone()
 
                 if not initial_card_data:
+                    print(original_line)
                     output_lines.append(original_line)
                     continue
 
+                name = initial_card_data['name']
                 identifier_attacks = initial_card_data['attacks']
                 identifier_rules = initial_card_data['rules']
                 identifier_column = None
@@ -195,6 +202,7 @@ def process_deck_list(deck_content, db_path):
                 if not found_replacement:
                     pass
                 
+                name = re.sub(r'\s*\(.*?\)', '', name)
                 updated_line = f"{count} {name} {best_set_id} {best_set_number}"
                 output_lines.append(updated_line)
             else:
