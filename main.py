@@ -65,6 +65,7 @@ RARITY_ORDER = [
     "Amazing Rare",
     "Double Rare",
     "Illustration Rare",
+    "Trainer Gallery Rare Holo",
     "Special Illustration Rare",
     "Hyper Rare",
     "Rare Shiny",
@@ -72,7 +73,6 @@ RARITY_ORDER = [
     "Shiny Ultra Rare",
     "ACE SPEC Rare",
     "Classic Collection",
-    "Trainer Gallery Rare Holo",
     "LEGEND"
 ]
 RARITY_MAP = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
