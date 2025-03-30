@@ -165,8 +165,8 @@ def process_deck_list(deck_content, db_path):
                         params = (card_name_from_db, identifier_value)
                 elif supertype == "Trainer":
                     cleaned_name = re.sub(r'\s*\(.*?\)', '', card_name_from_db).strip()
-                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ?"
-                    params = (cleaned_name,)
+                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name LIKE ?"
+                    params = (cleaned_name + '%',)
                     card_name_from_db = cleaned_name
                 else:
                     output_lines.append(original_line)
@@ -186,14 +186,12 @@ def process_deck_list(deck_content, db_path):
 
                 best_set_id = set_id
                 best_set_number = set_number
-                found_replacement = False
 
                 for card in reversed(sorted_cards):
                     card_rarity = card['rarity']
                     if not is_rarity_banned(card_rarity):
                         best_set_id = card['set_id']
                         best_set_number = card['set_number']
-                        found_replacement = True
                         break
 
                 updated_line = f"{count} {card_name_from_db} {best_set_id} {best_set_number}"
