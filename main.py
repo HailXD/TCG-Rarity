@@ -4,39 +4,38 @@ import os
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
-DECK_LIST_INPUT = """Pokemon - 14
-1 Applin TWM 185
-3 Applin TWM 126
-2 Dipplin TWM 18
-1 Hydrapple ex SCR 167
-2 Hydrapple ex SCR 156
-1 Mew ex MEW 205
-1 Teal Mask Ogerpon ex TWM 25
-1 Teal Mask Ogerpon ex TWM 221
-1 Teal Mask Ogerpon ex PRE 12
-1 Teal Mask Ogerpon ex TWM 190
-Trainer - 31
-1 Bosss Orders BRS 132
-1 Bosss Orders (Ghetsis) PAL 172
-2 Buddy-Buddy Poffin TEF 144
-2 Bug Catching Set PRE 102
-2 Bug Catching Set TWM 143
-1 Earthen Vessel PAR 163
-2 Energy Retrieval SVI 171
-1 Iono PAF 80
-2 Iono PAL 185
-2 Nest Ball PAF 84
-2 Nest Ball SVI 181
-1 Night Stretcher SFA 61
-1 Prime Catcher TEF 157
-3 Professor's Research PRE 122
-1 Professor's Research (Professor Sada) SVI 189
-4 Rare Candy CRZ 141
-1 Super Rod PAL 188
-1 Ultra Ball SVI 196
+DECK_LIST_INPUT = """Pokemon - 15
+3 Archaludon ex SSP 224
+3 Duraludon SCR 106
+1 Fezandipiti ex SFA 38
+2 Munkidori PRE 44
+1 Relicanth TEF 84
+1 Scizor OBF 205
+1 Scizor PAF 191
+1 Scyther OBF 4
+1 Scyther TEF 1
+1 Squawkabilly ex PAL 247
+Trainer - 35
+1 Black Belt's Training PRE 97
+3 Boss’s Orders (Ghetsis) PAL 172
+2 Calamitous Snowy Mountain PAL 174
+3 Earthen Vessel PAR 163
+3 Iono PAL 185
+1 Kieran TWM 154
+3 Nest Ball SVI 181
+4 Night Stretcher SFA 61
+1 Pal Pad SVI 182
+3 Pokégear 3.0 SSH 174
+3 Professor Turo's Scenario PRE 121
+1 Professor's Research PAF 88
+1 Professor's Research PAF 87
+1 Professor's Research PRE 124
+1 Secret Box TWM 163
 1 Ultra Ball PAF 91
-Energy - 15
-15 Basic Grass Energy"""
+3 Ultra Ball SVI 196
+Energy - 10
+2 Basic Darkness Energy 15
+8 Basic Metal Energy 16"""
 
 RARITY_ORDER = [
     "None",
