@@ -4,38 +4,36 @@ import os
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
-DECK_LIST_INPUT = """Pokemon - 15
-3 Archaludon ex SSP 224
-3 Duraludon SCR 106
+DECK_LIST_INPUT = """Pokemon - 17
+2 Brute Bonnet PAR 123
+2 Budew PRE 4
 1 Fezandipiti ex SFA 38
-2 Munkidori PRE 44
-1 Relicanth TEF 84
-1 Scizor OBF 205
-1 Scizor PAF 191
-1 Scyther OBF 4
-1 Scyther TEF 1
-1 Squawkabilly ex PAL 247
-Trainer - 35
-1 Black Belt's Training PRE 97
-3 Boss’s Orders (Ghetsis) PAL 172
-2 Calamitous Snowy Mountain PAL 174
-3 Earthen Vessel PAR 163
-3 Iono PAL 185
-1 Kieran TWM 154
-3 Nest Ball SVI 181
-4 Night Stretcher SFA 61
-1 Pal Pad SVI 182
-3 Pokégear 3.0 SSH 174
-3 Professor Turo's Scenario PRE 121
-1 Professor's Research PAF 88
+1 Latias ex SSP 76
+2 Munkidori TWM 95
+3 Paldean Clodsire ex JTG 94
+4 Paldean Wooper PAF 58
+1 Pecharunt  149
+1 Pecharunt ex SFA 39
+Trainer - 34
+2 Ancient Booster Energy Capsule TEF 140
+4 Arven SVI 166
+3 Binding Mochi SFA 55
+1 Black Belt's Training PRE 96
+1 Boss’s Orders (Ghetsis) PAL 172
+2 Counter Catcher PAR 160
+1 Earthen Vessel PRE 106
+2 Energy Switch SVI 173
+2 Iono PAL 185
+2 Janine's Secret Art PRE 112
+4 Nest Ball SVI 181
+2 Night Stretcher SFA 61
+2 Perilous Jungle TEF 156
 1 Professor's Research PAF 87
-1 Professor's Research PRE 124
-1 Secret Box TWM 163
-1 Ultra Ball PAF 91
+1 Super Rod PAL 188
+1 Switch SVI 194
 3 Ultra Ball SVI 196
-Energy - 10
-2 Basic Darkness Energy 15
-8 Basic Metal Energy 16"""
+Energy - 9
+9 Basic Darkness Energy 15"""
 
 RARITY_ORDER = [
     "None",
@@ -56,7 +54,6 @@ RARITY_ORDER = [
     "Rare Holo V",
     "Rare Holo VMAX",
     "Rare Holo VSTAR",
-    "Ultra Rare",
     "Rare Ultra",
     "Rare Secret",
     "Rare Rainbow",
@@ -64,6 +61,7 @@ RARITY_ORDER = [
     "Radiant Rare",
     "Amazing Rare",
     "Double Rare",
+    "Ultra Rare",
     "Illustration Rare",
     "Trainer Gallery Rare Holo",
     "Special Illustration Rare",
@@ -193,63 +191,37 @@ def process_deck_list(deck_content, db_path):
 
     return "\n".join(output_lines)
 
-
-def compile_and_sort_deck_list(processed_deck, db_path=DB_FILE):
+def compile_and_sort_deck_list(processed_deck):
     lines = processed_deck.strip().split("\n")
-    compiled = {'Pokémon': {}, 'Trainer': {}, 'Energy': {}}
-
-    if os.path.exists(db_path):
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-    else:
-        conn = None
-        cursor = None
+    compiled = {}
+    category_order = []
+    current_category = None
 
     for line in lines:
-        card_match = re.match(r"^(\d+)\s+(.+)$", line)
-        if card_match:
-            count = int(card_match.group(1))
-            card_details = card_match.group(2).strip()
-
-            if "Energy" in card_details:
-                category = "Energy"
-            elif cursor:
-                parts = card_details.split()
-                if len(parts) >= 3:
-                    possible_set_number = parts[-1]
-                    possible_set_id = parts[-2]
-                    cursor.execute(
-                        f"SELECT supertype FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?",
-                        (possible_set_id, possible_set_number)
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        category = row['supertype']
-                    else:
-                        category = "Trainer"
+        header_match = re.match(r"^(Pokemon|Trainer|Energy)\s*-\s*\d+\s*$", line, re.IGNORECASE)
+        if header_match:
+            current_category = header_match.group(1)
+            if current_category not in compiled:
+                compiled[current_category] = {}
+                category_order.append(current_category)
+        else:
+            card_match = re.match(r"^(\d+)\s+(.+)$", line)
+            if card_match and current_category is not None:
+                count = int(card_match.group(1))
+                card_info = card_match.group(2).strip()
+                if card_info in compiled[current_category]:
+                    compiled[current_category][card_info] += count
                 else:
-                    category = "Trainer"
-            else:
-                category = "Trainer"
-
-            if card_details in compiled.get(category, {}):
-                compiled[category][card_details] += count
-            else:
-                compiled[category][card_details] = count
-
-    if conn:
-        conn.close()
+                    compiled[current_category][card_info] = count
 
     output_lines = []
-    for cat in ['Pokémon', 'Trainer', 'Energy']:
+    for cat in category_order:
         sorted_cards = sorted(compiled[cat].items(), key=lambda x: x[0])
         total_count = sum(count for _, count in sorted_cards)
         output_lines.append(f"{cat} - {total_count}")
         for card_info, count in sorted_cards:
             output_lines.append(f"{count} {card_info}")
     return "\n".join(output_lines)
-
 
 if __name__ == "__main__":
     processed_deck = process_deck_list(DECK_LIST_INPUT, DB_FILE)
