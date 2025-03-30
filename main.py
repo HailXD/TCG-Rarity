@@ -73,7 +73,7 @@ RARITY_ORDER = [
 ]
 RARITY_MAP = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
 
-BANNED_RARITY_WORDS = ["Hyper", "Secret", "Shiny"]
+BANNED_RARITY_WORDS = ["Hyper", "Secret", "Shiny", "Rainbow"]
 
 
 def get_rarity_sort_key(rarity_str):
