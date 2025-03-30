@@ -1,7 +1,11 @@
 import sqlite3
 import re
+import os
 
-deck = '''Pokemon - 15
+DB_FILE = 'pokemon_cards.db'
+TABLE_NAME = 'cards'
+DECK_LIST_INPUT = """Pokemon - 15
+1 Umbreon VMAX BRS TG23
 3 Iron Crown ex TEF 81
 2 Iron Hands TEF 61
 2 Iron Jugulis PAR 158
@@ -27,104 +31,184 @@ Trainer - 30
 Energy - 15
 8 Basic Lightning Energy 12
 5 Basic Psychic Energy 13
-2 Double Turbo Energy BRS 151'''
+2 Double Turbo Energy BRS 151"""
 
-def load_cards_db(db_path):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM cards")
-    rows = cur.fetchall()
-    cards = [dict(row) for row in rows]
-    conn.close()
-    return cards
+RARITY_ORDER = [
+    "None",
+    "Promo",
+    "Common",
+    "Uncommon",
+    "Rare",
+    "Rare Holo",
+    "Rare Shining",
+    "Rare Holo EX",
+    "Rare Holo Star",
+    "Rare Holo LV.X",
+    "Rare Prime",
+    "Rare ACE",
+    "Rare BREAK",
+    "Rare Holo GX",
+    "Rare Shiny GX",
+    "Rare Holo V",
+    "Rare Holo VMAX",
+    "Rare Holo VSTAR",
+    "Ultra Rare",
+    "Rare Ultra",
+    "Rare Secret",
+    "Rare Rainbow",
+    "Rare Prism Star",
+    "Radiant Rare",
+    "Amazing Rare",
+    "Double Rare",
+    "Illustration Rare",
+    "Special Illustration Rare",
+    "Hyper Rare",
+    "Rare Shiny",
+    "Shiny Rare",
+    "Shiny Ultra Rare",
+    "ACE SPEC Rare",
+    "Classic Collection",
+    "Trainer Gallery Rare Holo",
+    "LEGEND"
+]
+RARITY_MAP = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
 
-def process_deck(deck_str, card_db):
-    new_deck_lines = []
-    banned_words = ["Hyper", "Secret", "Shiny"]
-    
-    def contains_banned(text):
-        if not text:
-            return False
-        return any(banned in text for banned in banned_words)
-    
-    def to_int(s):
-        try:
-            return int(s)
-        except:
-            return 0
+BANNED_RARITY_WORDS = ["Hyper", "Secret", "Shiny"]
 
-    current_section = None
-    for line in deck_str.splitlines():
-        if not re.match(r'^\d+', line):
-            current_section = line.split(" - ")[0].strip()
-            new_deck_lines.append(line)
-            continue
-        
-        if current_section == "Energy":
-            tokens = line.split()
-            if len(tokens) > 1 and tokens[1].lower() == "basic":
-                new_tokens = [tokens[0]] + tokens[2:]
-                new_line = " ".join(new_tokens)
+
+def get_rarity_sort_key(rarity_str):
+    """Gets the sort key for a given rarity string."""
+    if rarity_str is None:
+        rarity_str = "None"
+    return RARITY_MAP.get(rarity_str, -1)
+
+def is_rarity_banned(rarity_str):
+    """Checks if a rarity string contains any banned words."""
+    if rarity_str is None:
+        return False
+    return any(banned in rarity_str for banned in BANNED_RARITY_WORDS)
+
+def process_deck_list(deck_content, db_path):
+    """
+    Processes the deck list to find the rarest legal printings.
+
+    Args:
+        deck_content (str): The deck list as a multi-line string.
+        db_path (str): The path to the SQLite database file.
+
+    Returns:
+        str: The processed deck list with updated card codes.
+    """
+    if not os.path.exists(db_path):
+        return f"Error: Database file not found at {db_path}"
+
+    output_lines = []
+    lines = deck_content.strip().split('\n')
+
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            if re.match(r"^\s*(Pokemon|Trainer|Energy)\s*-\s*\d+\s*$", line, re.IGNORECASE):
+                output_lines.append(line)
+                continue
+
+            basic_energy_match = re.match(r"^\s*(\d+)\s+Basic\s+(.+?)\s+Energy(?:\s+(\d+))?\s*$", line, re.IGNORECASE)
+            if basic_energy_match:
+                count = basic_energy_match.group(1)
+                energy_type = basic_energy_match.group(2)
+                energy_num = basic_energy_match.group(3)
+                if energy_num:
+                     output_lines.append(f"{count} {energy_type} Energy {energy_num}")
+                else:
+                     output_lines.append(f"{count} {energy_type} Energy")
+                continue
+
+            card_match = re.match(r"^\s*(\d+)\s+(.+?)\s+([A-Z0-9-]+)\s+([A-Za-z0-9]+)\s*$", line)
+            if card_match:
+                count = card_match.group(1)
+                name = card_match.group(2).strip()
+                set_id = card_match.group(3)
+                set_number = card_match.group(4)
+                original_line = f"{count} {name} {set_id} {set_number}"
+
+                cursor.execute(f"SELECT name, attacks, rules FROM {TABLE_NAME} WHERE set_id = ? AND set_number = ?", (set_id, set_number))
+                initial_card_data = cursor.fetchone()
+
+                if not initial_card_data:
+                    output_lines.append(original_line)
+                    continue
+
+                identifier_attacks = initial_card_data['attacks']
+                identifier_rules = initial_card_data['rules']
+                identifier_column = None
+                identifier_value = None
+
+                if identifier_attacks is not None:
+                    identifier_column = 'attacks'
+                    identifier_value = identifier_attacks
+                elif identifier_rules is not None:
+                    identifier_column = 'rules'
+                    identifier_value = identifier_rules
+                else:
+                    output_lines.append(original_line)
+                    continue
+
+
+                if identifier_value is None:
+                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} IS NULL"
+                    params = (name,)
+                else:
+                    query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} = ?"
+                    params = (name, identifier_value)
+
+                cursor.execute(query, params)
+                matching_cards = cursor.fetchall()
+
+                if not matching_cards:
+                    output_lines.append(original_line)
+                    continue
+
+
+                sorted_cards = sorted(
+                    matching_cards,
+                    key=lambda card: get_rarity_sort_key(card['rarity'])
+                )
+
+                best_set_id = set_id
+                best_set_number = set_number
+                found_replacement = False
+
+                for card in reversed(sorted_cards):
+                    card_rarity = card['rarity']
+                    if not is_rarity_banned(card_rarity):
+                        best_set_id = card['set_id']
+                        best_set_number = card['set_number']
+                        found_replacement = True
+                        break
+                if not found_replacement:
+                    pass
+                
+                updated_line = f"{count} {name} {best_set_id} {best_set_number}"
+                output_lines.append(updated_line)
             else:
-                new_line = line
-            new_deck_lines.append(new_line)
-            continue
+                output_lines.append(line)
 
-        tokens = line.split()
-        if not tokens[-1].isdigit() or len(tokens) < 3:
-            new_deck_lines.append(line)
-            continue
+    except sqlite3.Error as e:
+        return f"Database error: {e}"
+    finally:
+        if conn:
+            conn.close()
 
-        quantity = tokens[0]
-        set_number = tokens[-1]
-        set_id = tokens[-2]
-        card_name = " ".join(tokens[1:-2])
-        
-        matching_card = None
-        for card in card_db:
-            if str(card.get('set_number')) == set_number and card.get('set_id') == set_id:
-                matching_card = card
-                break
-        
-        if not matching_card:
-            new_deck_lines.append(line)
-            continue
+    return "\n".join(output_lines)
 
-        card_detail = matching_card.get('attacks') or matching_card.get('rules')
-        if card_detail is None:
-            new_deck_lines.append(line)
-            continue
+if __name__ == "__main__":
+    processed_deck = process_deck_list(DECK_LIST_INPUT, DB_FILE)
+    print(processed_deck)
 
-        if (contains_banned(matching_card.get('name', '')) or
-            contains_banned(card_detail) or
-            contains_banned(matching_card.get('rarity', ''))):
-            new_deck_lines.append(line)
-            continue
-
-        candidate_cards = []
-        for card in card_db:
-            if card.get('name') == matching_card.get('name'):
-                detail = card.get('attacks') or card.get('rules')
-                if detail == card_detail:
-                    if (not contains_banned(card.get('name', '')) and
-                        (not detail or not contains_banned(detail)) and
-                        not contains_banned(card.get('rarity', ''))):
-                        candidate_cards.append(card)
-        
-        if candidate_cards:
-            best_card = max(candidate_cards, key=lambda c: to_int(c.get('set_number', '0')))
-            if to_int(best_card.get('set_number', '0')) > to_int(set_number):
-                set_id = best_card.get('set_id')
-                set_number = best_card.get('set_number')
-        
-        new_line = f"{quantity} {card_name} {set_id} {set_number}"
-        new_deck_lines.append(new_line)
-        
-    return "\n".join(new_deck_lines)
-
-db_path = "pokemon_cards.db"
-card_db = load_cards_db(db_path)
-
-updated_deck = process_deck(deck, card_db)
-print(updated_deck)
