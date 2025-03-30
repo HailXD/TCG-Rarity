@@ -127,13 +127,9 @@ def process_deck_list(deck_content, db_path):
             if basic_energy_match:
                 count = basic_energy_match.group(1)
                 energy_type = basic_energy_match.group(2)
-                energy_num = basic_energy_match.group(3)
-                if energy_num:
-                     output_lines.append(f"{count} {energy_type} Energy {energy_num}")
-                else:
-                     output_lines.append(f"{count} {energy_type} Energy")
+                output_lines.append(f"{count} {energy_type} Energy")
                 continue
-                
+
             card_match = re.match(r"^\s*(\d+)\s+(.+?)\s+([A-Z0-9-]+)\s+([A-Za-z0-9]+)\s*$", line)
             if card_match:
                 count = card_match.group(1)
@@ -146,7 +142,6 @@ def process_deck_list(deck_content, db_path):
                 initial_card_data = cursor.fetchone()
 
                 if not initial_card_data:
-                    print(original_line)
                     output_lines.append(original_line)
                     continue
 
@@ -166,7 +161,6 @@ def process_deck_list(deck_content, db_path):
                     output_lines.append(original_line)
                     continue
 
-
                 if identifier_value is None:
                     query = f"SELECT set_id, set_number, rarity FROM {TABLE_NAME} WHERE name = ? AND {identifier_column} IS NULL"
                     params = (name,)
@@ -180,7 +174,6 @@ def process_deck_list(deck_content, db_path):
                 if not matching_cards:
                     output_lines.append(original_line)
                     continue
-
 
                 sorted_cards = sorted(
                     matching_cards,
@@ -198,9 +191,6 @@ def process_deck_list(deck_content, db_path):
                         best_set_number = card['set_number']
                         found_replacement = True
                         break
-                if not found_replacement:
-                    pass
-                
                 name = re.sub(r'\s*\(.*?\)', '', name)
                 updated_line = f"{count} {name} {best_set_id} {best_set_number}"
                 output_lines.append(updated_line)
@@ -215,7 +205,52 @@ def process_deck_list(deck_content, db_path):
 
     return "\n".join(output_lines)
 
+
+def compile_and_sort_deck_list(processed_deck):
+    """
+    Compiles duplicate card entries in the processed deck list and sorts them.
+    It groups cards under their section (Pokemon, Trainer, Energy), aggregates counts for identical cards,
+    updates header counts, and sorts each group alphabetically by card details.
+
+    Args:
+        processed_deck (str): The processed deck list as a multi-line string.
+
+    Returns:
+        str: The compiled and sorted deck list.
+    """
+    lines = processed_deck.strip().split("\n")
+    compiled = {}
+    category_order = []
+    current_category = None
+
+    for line in lines:
+        header_match = re.match(r"^(Pokemon|Trainer|Energy)\s*-\s*\d+\s*$", line, re.IGNORECASE)
+        if header_match:
+            current_category = header_match.group(1)
+            if current_category not in compiled:
+                compiled[current_category] = {}
+                category_order.append(current_category)
+        else:
+            card_match = re.match(r"^(\d+)\s+(.+)$", line)
+            if card_match and current_category is not None:
+                count = int(card_match.group(1))
+                card_info = card_match.group(2).strip()
+                if card_info in compiled[current_category]:
+                    compiled[current_category][card_info] += count
+                else:
+                    compiled[current_category][card_info] = count
+
+    output_lines = []
+    for cat in category_order:
+        sorted_cards = sorted(compiled[cat].items(), key=lambda x: x[0])
+        total_count = sum(count for _, count in sorted_cards)
+        output_lines.append(f"{cat} - {total_count}")
+        for card_info, count in sorted_cards:
+            output_lines.append(f"{count} {card_info}")
+    return "\n".join(output_lines)
+
+
 if __name__ == "__main__":
     processed_deck = process_deck_list(DECK_LIST_INPUT, DB_FILE)
-    print(processed_deck)
-
+    compiled_sorted_deck = compile_and_sort_deck_list(processed_deck)
+    print(compiled_sorted_deck)
