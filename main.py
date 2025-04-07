@@ -5,72 +5,80 @@ from pprint import pprint
 
 DB_FILE = 'pokemon_cards.db'
 TABLE_NAME = 'cards'
-DECK_LIST_INPUT = """Pokemon - 15
-3 Iron Crown ex TEF 81
-2 Iron Hands TEF 61
-2 Iron Jugulis PAR 158
-2 Iron Thorns TEF 62
-2 Latias ex SSP 76
-3 Miraidon TEF 121
-1 Miraidon ex TEF 122
-Trainer - 30
-2 Ciphermaniac's Codebreaking PRE 104
-3 Crispin PRE 105
-2 Energy Retrieval SVI 171
-2 Energy Search BCR 128
-2 Energy Switch SSH 162
-4 Future Booster Energy Capsule PAR 164
-2 Larry's Skill PRE 115
-3 Miriam SVI 179
-1 Professor Turo's Scenario PAR 171
-1 Professor's Research PAF 88
-1 Reboot Pod TEF 158
-2 Super Rod PAL 188
-3 Techno Radar PAR 180
-2 Trekking Shoes CRZ 145
-Energy - 15
-8 Basic Lightning Energy 12
-5 Basic Psychic Energy 13
-2 Double Turbo Energy BRS 151"""
+DECK_LIST_INPUT = """Pokemon - 18
+2 Budew PRE 4
+3 Charizard ex PAF 234
+3 Charmander MEW 168
+1 Charmeleon PAF 110
+1 Dusclops SFA 69
+2 Dusknoir SFA 70
+2 Duskull SFA 68
+1 Fezandipiti ex SFA 92
+1 Munkidori SFA 72
+1 Pecharunt ex PRE 163
+1 Squawkabilly ex PAL 264
+Trainer - 35
+1 Artazon OBF 229
+4 Arven PAF 235
+2 Binding Mochi SFA 55
+1 Boss's Orders RCL 189
+4 Buddy-Buddy Poffin TWM 223
+2 Carmine TWM 217
+1 Counter Catcher PAR 264
+1 Defiance Band SVI 169
+1 Earthen Vessel SFA 96
+2 Iono PAL 269
+2 Nest Ball SVI 255
+1 Pal Pad SSH 172
+1 Pokémon League Headquarters OBF 192
+1 Prime Catcher TEF 157
+4 Rare Candy PLB 105
+2 Super Rod PAL 276
+1 Technical Machine: Evolution PAR 178
+4 Ultra Ball PLF 122
+Energy - 7
+1 Basic Darkness Energy 98
+6 Basic Fire Energy 230"""
 
 RARITY_ORDER = [
     "None",
-    "Promo",
     "Common",
     "Uncommon",
+    "Promo",
     "Rare",
     "Rare Holo",
-    "Rare Shining",
+    "Trainer Gallery Rare Holo",
+    "Rare Holo V",
+    "Rare Holo VSTAR",
+    "Rare Holo VMAX",
+    "Rare BREAK",
+    "Rare Prime",
+    "Rare Holo GX",
     "Rare Holo EX",
+    "Rare Shining",
     "Rare Holo Star",
     "Rare Holo LV.X",
-    "Rare Prime",
-    "Rare ACE",
-    "Rare BREAK",
-    "Rare Holo GX",
-    "Rare Shiny GX",
-    "Rare Holo V",
-    "Rare Holo VMAX",
-    "Rare Holo VSTAR",
     "Rare Ultra",
-    "Rare Secret",
-    "Rare Rainbow",
-    "Rare Prism Star",
-    "Radiant Rare",
-    "Amazing Rare",
     "Double Rare",
-    "Ultra Rare",
-    "Illustration Rare",
-    "Trainer Gallery Rare Holo",
-    "Special Illustration Rare",
-    "Hyper Rare",
+    "Rare ACE",
+    "ACE SPEC Rare",
     "Rare Shiny",
     "Shiny Rare",
+    "Rare Shiny GX",
+    "Rare Prism Star",
+    "Amazing Rare",
+    "Radiant Rare",
+    "Ultra Rare",
+    "Hyper Rare",
+    "Rare Rainbow",
+    "Illustration Rare",
+    "Special Illustration Rare",
     "Shiny Ultra Rare",
-    "ACE SPEC Rare",
     "Classic Collection",
+    "Rare Secret",
     "LEGEND"
 ]
+
 RARITY_MAP = {rarity: index for index, rarity in enumerate(RARITY_ORDER)}
 
 BANNED_RARITY_WORDS = ["Hyper", "Secret", "Shiny", "Rainbow"]

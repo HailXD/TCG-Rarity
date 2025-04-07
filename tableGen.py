@@ -3,12 +3,10 @@ import json
 import os
 from pathlib import Path
 
-# --- Configuration ---
 SETS_FILE = Path("sets/en.json")
 CARDS_DIR = Path("cards/en")
 DB_NAME = "pokemon_cards.db"
 TABLE_NAME = "cards"
-# --- End Configuration ---
 
 def create_connection(db_file):
     """ Create a database connection to the SQLite database specified by db_file """
@@ -23,8 +21,6 @@ def create_connection(db_file):
 
 def create_table(conn):
     """ Create the cards table """
-    # Define columns based on common fields. Store complex types as JSON strings.
-    # Add 'set_id' as the first column.
     sql_create_cards_table = f"""
     CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
         set_id TEXT,
@@ -77,8 +73,6 @@ def insert_card(conn, card_data):
         return cur.lastrowid
     except sqlite3.Error as e:
         print(f"Error inserting card {card_data[1]}: {e}")
-        # Optionally print the problematic data
-        # print(f"Problematic data: {card_data}")
         return None
 
 def process_files():
@@ -111,7 +105,7 @@ def process_files():
 
     for pokemon_set in sets_data:
         set_id = pokemon_set.get('id')
-        ptcgo_code = pokemon_set.get('ptcgoCode') # Can be None if missing
+        ptcgo_code = pokemon_set.get('ptcgoCode')
 
         if not set_id:
             print(f"Skipping set entry due to missing 'id': {pokemon_set.get('name', 'N/A')}")
@@ -135,9 +129,6 @@ def process_files():
                 continue
 
             for card in cards_in_set:
-                # Prepare data tuple, handling potentially missing keys safely
-                # Use card.get(key, default_value)
-                # Use json.dumps for list/dict fields to store as TEXT
                 card_values = (
                     ptcgo_code,
                     card.get('id'),
@@ -156,7 +147,7 @@ def process_files():
                     json.dumps(card.get('resistances')) if card.get('resistances') else None,
                     json.dumps(card.get('retreatCost')) if card.get('retreatCost') else None,
                     card.get('convertedRetreatCost'),
-                    card.get('number'), # 'set_number' column
+                    card.get('number'),
                     card.get('artist'),
                     card.get('rarity'),
                     card.get('flavorText'),
@@ -165,11 +156,10 @@ def process_files():
                     card.get('regulationMark'),
                     json.dumps(card.get('images')) if card.get('images') else None
                 )
-                # print(card_values) # Uncomment for debugging specific card data
                 if insert_card(conn, card_values):
                    set_cards_inserted += 1
 
-            conn.commit() # Commit after each set's cards are processed
+            conn.commit()
             print(f"  Inserted {set_cards_inserted} cards from set {set_id}.")
             total_cards_processed += set_cards_inserted
             sets_processed += 1
@@ -179,9 +169,8 @@ def process_files():
         except Exception as e:
             print(f"An unexpected error occurred processing {card_file_path}: {e}")
 
-    # Final commit and close
     if conn:
-        conn.commit() # Final commit just in case
+        conn.commit()
         conn.close()
         print("\n--- Processing Summary ---")
         print(f"Total sets processed: {sets_processed}")
