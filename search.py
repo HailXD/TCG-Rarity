@@ -1,34 +1,28 @@
 import re
 import sqlite3
 from typing import Iterable, List, NamedTuple
-import json 
 
-deck = '''Pokemon - 23
-4 Flaaffy SIT 3
-4 Mareep LOT 75
-2 Octillery BRS 3
-1 Radiant Greninja ASR 46
-4 Rayquaza V EVS 194
-4 Rayquaza VMAX SIT 20
-2 Remoraid BST 36
-1 Sylveon V EVS 184
-1 Sylveon V BRS 14
-Trainer - 24
-1 Earthen Vessel SFA 96
-4 Korrina's Focus BST 160
-2 Lysandre FLF 104
-2 Marnie PR-SW SWSH121
-2 Pokémon Communication HS 98
-1 Professor's Research PR-SW SWSH152
-4 Quick Ball SSH 216
-1 Sabrina's Suggestion TEU 181
-3 Tower of Waters BST 138
-2 Ultra Ball PLF 122
-1 Ultra Ball SUM 161
-1 Ultra Ball BRS 186
-Energy - 13
-6 Fire Energy 10
-7 Lightning Energy 135'''
+deck = '''Pokemon - 15
+3 Iono's Bellibolt ex JTG 53
+3 Iono's Kilowattrel JTG 55
+3 Iono's Tadbulb JTG 52
+2 Iono's Voltorb JTG 47
+3 Iono's Wattrel JTG 54
+1 Skwovet SVI 151
+Trainer - 28
+3 Boss’s Orders (Ghetsis) PAL 172
+2 Brock's Scouting JTG 146
+4 Buddy-Buddy Poffin TEF 144
+1 Counter Catcher PAR 160
+4 Iono PAL 185
+3 Levincia JTG 150
+1 Nest Ball SVI 181
+2 Night Stretcher SFA 61
+1 Prime Catcher TEF 157
+3 Superior Energy Retrieval PAL 189
+4 Ultra Ball SVI 196
+Energy - 17
+17 Basic Lightning Energy 12'''
 
 rarities = ['common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity', 'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v', 'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare', 'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x', 'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar', 'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime', 'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare', 'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax', 'amazing rare']
 exclusion = ['shiny', 'rainbow', 'hyper']
