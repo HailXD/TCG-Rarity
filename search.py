@@ -82,50 +82,26 @@ def fetch_printing(set_code: str, card_no: str) -> sqlite3.Row | None:
     return cur.fetchone()
 
 def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
-    """
-    For Pokémon cards, find printings that share the FIRST attack name
-    instead of matching on HP.  
-    For all other card types, keep the old behaviour.
-    """
     ctype = card_row["card_type"].lower()
 
     if ctype == "pokemon":
         first_attack = ""
-        try:
-            raw = card_row["attacks"]
-            j = raw.replace("'", '"')
-            j = re.sub(r'(:\s*)none\b', r'\1null', j)
+        raw = card_row["attacks"]
+        
+        first_attack = raw.split("e': '", 1)[1].split("'", 1)[0]
 
-            attacks = json.loads(j)
-            if isinstance(attacks, list) and attacks:
-                first_attack = attacks[0].get("name", "").lower()
-        except Exception:
-            pass
-
-        if first_attack:
-            cur.execute(
-                """
-                SELECT *
-                FROM cards
-                WHERE name            = ?
-                  AND lower(card_type) = 'pokemon'
-                  AND lower(attacks)   LIKE ?
-                ORDER BY julianday(date) ASC
-                """,
-                (card_row["name"], f"%{first_attack}%"),
-            )
-        else:
-            cur.execute(
-                """
-                SELECT *
-                FROM cards
-                WHERE name            = ?
-                  AND hp              = ?
-                  AND lower(card_type) = 'pokemon'
-                ORDER BY julianday(date) ASC
-                """,
-                (card_row["name"], card_row["hp"]),
-            )
+        cur.execute(
+            """
+            SELECT *
+            FROM cards
+            WHERE name            = ?
+                AND lower(card_type) = 'pokemon'
+                AND lower(attacks)   LIKE ?
+            ORDER BY julianday(date) ASC
+            """,
+            (card_row["name"], f"%{first_attack}%"),
+        )
+    
     else:
         cur.execute(
             """
@@ -152,6 +128,7 @@ def print_row(row: sqlite3.Row) -> None:
         row["rarity"],
         row["set_name"],
         row["number"],
+        row["img"],
     )
     print("    " + " | ".join(str(f) for f in fields if f is not None))
 
