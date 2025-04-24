@@ -126,7 +126,8 @@ def print_row(row: sqlite3.Row) -> None:
         f"HP {row['hp']}" if row["card_type"].lower() == "pokemon" else None,
         row["regulation"],
         row["rarity"],
-        row["set_name"],
+        row["set_name"].upper(),
+        row["date"],
         row["number"],
         row["img"],
     )
