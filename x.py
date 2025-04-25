@@ -226,7 +226,6 @@ def _canonical_key(card_row: sqlite3.Row) -> Tuple[str, str]:
     return (card_row["name"].lower(), ctype)
 
 
-
 if rebuild or CARDS_KEY not in st.session_state:
     parsed_entries = parse_decklist(raw_deck)
 
@@ -260,10 +259,21 @@ if rebuild or CARDS_KEY not in st.session_state:
     for key in aggregated:
         rec = aggregated[key]
         rec_variations = list(reversed(rec["variations"]))
+
+        # ------------------------------------------------------------------
+        # Move the rarest variation to the front while preserving the
+        # original newest → oldest order for the rest of the list.
+        # ------------------------------------------------------------------
+        rare_idx = _default_variation_index(rec_variations)
+        if rare_idx > 0:
+            rec_variations.insert(0, rec_variations.pop(rare_idx))
+        # ------------------------------------------------------------------
+
         cards_data.append((rec["entry"], rec_variations))
 
     default_picks: Dict[int, int] = {}
     for idx, (_, variations) in enumerate(cards_data):
+        # The rarest variation is now at index 0, so this will default to 0.
         default_picks[idx] = _default_variation_index(variations)
 
     st.session_state[CARDS_KEY] = cards_data
@@ -300,8 +310,6 @@ for idx, (entry, variations) in enumerate(cards_data):
             width=MAIN_W,
             caption=captions[sel_idx],
         )
-
-
 
 
 def build_deck() -> str:
