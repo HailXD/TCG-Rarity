@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
-import sys
-from pathlib import Path
-from typing import Iterable, List, NamedTuple, Sequence
-import itertools
-import datetime
+from typing import Iterable, List, NamedTuple 
 
 RARITIES_ORDER = [
     'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
