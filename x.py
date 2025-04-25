@@ -7,12 +7,7 @@
 # done, copy the regenerated deck‑list that matches your selections.
 #
 # -- Requirements --
-#   pip install streamlit pillow
-#   # Optional: nicer image picker ↓
-#   pip install streamlit-image-select       # (optional)
-#
-# If *streamlit-image-select* is absent we gracefully fall back to a
-# built‑in selector that uses radio buttons instead of clickable tiles.
+#   pip install streamlit pillow streamlit-image-select
 # ------------------------------------------------------------
 
 from __future__ import annotations
@@ -20,49 +15,32 @@ from __future__ import annotations
 import re
 import sqlite3
 import textwrap
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Iterable, List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Tuple
 
 import requests
 import streamlit as st
 from PIL import Image
 
 # ------------------------------------------------------------------
-# Optional dependency: streamlit‑image‑select for a slick tile picker
+# Mandatory dependency: streamlit‑image‑select for a slick tile picker
 # ------------------------------------------------------------------
 try:
     from streamlit_image_select import image_select  # type: ignore
-    _HAS_IMG_SELECT = True
-except ModuleNotFoundError:  # graceful fallback
-    _HAS_IMG_SELECT = False
-
-    def image_select(
-        *,
-        label: str,
-        images: List[str],
-        captions: List[str],
-        width: int,
-        index: int,
-        return_value: str,
-        key: str,
-    ) -> int | None:
-        """Very simple fallback: show a `st.radio` to choose variants."""
-        cols = st.columns(2)
-        with cols[0]:
-            st.write(label)
-            choice = st.radio(
-                label="Variants", options=list(range(len(images))), index=index, key=f"radio-{key}"
-            )
-        with cols[1]:
-            st.image([load_image(u) for u in images], caption=captions, width=width)
-        return choice
+except ModuleNotFoundError:
+    st.error(
+        "Missing required package **streamlit-image-select**. Install it with:\n    pip install streamlit-image-select"
+    )
+    st.stop()
 
 # ------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------
 DB_PATH = Path("pokemon_cards.db")  # adjust if your DB lives elsewhere
 THUMB_W, MAIN_W = 110, 300          # thumbnail & main‑image widths (px)
+MAX_PARALLEL = 8                    # concurrent download workers
 
 # ------------------------------------------------------------
 # Helpers for deck parsing & DB access
@@ -145,13 +123,20 @@ def fetch_related(card_row):
     return cur.fetchall() or [card_row]
 
 # ------------------------------------------------------------
-# Image fetching with Streamlit cache
+# Parallel image fetching (cached)
 # ------------------------------------------------------------
+
 @st.cache_data(show_spinner=False)
-def load_image(url: str) -> Image.Image:
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    return Image.open(BytesIO(resp.content))
+def load_images(urls: Tuple[str, ...]) -> List[Image.Image]:
+    """Download multiple images in parallel and cache the result."""
+
+    def _fetch(u: str) -> Image.Image:
+        resp = requests.get(u, timeout=30)
+        resp.raise_for_status()
+        return Image.open(BytesIO(resp.content))
+
+    with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL, len(urls))) as pool:
+        return list(pool.map(_fetch, urls))
 
 # ------------------------------------------------------------
 # Session‑state keys
@@ -172,13 +157,15 @@ sub = (
 st.markdown(sub)
 
 with st.sidebar:
-    sample_deck = textwrap.dedent("""
-        Pokemon - 15
-        1 Iono's Bellibolt ex JTG 183
-        Trainer - 34
-        1 Boss’s Orders (Ghetsis) PAL 172
-        1 Boss’s Orders (Ghetsis) PAL 172
-    """).strip()
+    sample_deck = textwrap.dedent(
+        """
+            Pokemon - 15
+            1 Iono's Bellibolt ex JTG 183
+            Trainer - 34
+            1 Boss’s Orders (Ghetsis) PAL 172
+            1 Boss’s Orders (Ghetsis) PAL 172
+        """
+    ).strip()
 
     raw_deck = st.text_area("Deck list", sample_deck, height=400)
     rebuild = st.button("Parse / Rebuild UI ↻", use_container_width=True)
@@ -211,26 +198,36 @@ cards_data = st.session_state.get(CARDS_KEY, [])
 selections = st.session_state.get(SELECTIONS_KEY, {})
 
 # ------------------------------------------------------------
-# Interactive card pickers
+# Interactive card pickers – sections expanded by default
 # ------------------------------------------------------------
 for idx, (entry, variations) in enumerate(cards_data):
-    with st.expander(f"{entry.quantity}× {entry.name}"):
-        chosen = variations[selections.get(idx, 0)]
-        st.image(load_image(chosen["img"]), width=MAIN_W,
-                 caption=f"{chosen['set_name'].upper()} {chosen['number']}")
+    with st.expander(f"{entry.quantity}× {entry.name}", expanded=True):
+        thumb_urls = tuple(row["img"] for row in variations)
+        captions   = [f"{row['set_name'].upper()} {row['number']}" for row in variations]
 
-        thumb_urls  = [row["img"] for row in variations]
-        captions    = [f"{row['set_name'].upper()} {row['number']}" for row in variations]
-        picked_idx  = image_select(
-            label="Choose another printing" if _HAS_IMG_SELECT else "Variant list",
-            images=thumb_urls,
+        # Parallel fetch (cached) of all thumbnails
+        thumb_imgs = load_images(thumb_urls)
+
+        # Display current choice
+        sel_idx = selections.get(idx, 0)
+        st.image(
+            thumb_imgs[sel_idx],
+            width=MAIN_W,
+            caption=captions[sel_idx],
+        )
+
+        # Image picker – click thumbnail to choose
+        picked_idx = image_select(
+            label="Choose another printing",
+            images=thumb_imgs,
             captions=captions,
-            width=THUMB_W,
-            index=selections.get(idx, 0),
+            index=sel_idx,
             return_value="index",
             key=f"pick-{idx}",
+            use_container_width=False,
         )
-        if picked_idx is not None and picked_idx != selections.get(idx, 0):
+
+        if picked_idx is not None and picked_idx != sel_idx:
             selections[idx] = picked_idx
             st.session_state[SELECTIONS_KEY] = selections
             st.experimental_rerun()
