@@ -19,7 +19,6 @@ RARITIES_ORDER = [
     'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax',
     'amazing rare'
 ]
-
 EXCLUSION = ['shiny', 'rainbow', 'hyper']
 SUPPORT_EXCLUSION = EXCLUSION + ['gallery']
 POKEMON_EXCLUSION = EXCLUSION + ['ultra']
@@ -40,11 +39,8 @@ class DeckEntry(NamedTuple):
     number: str
     raw_line: str
 
+
 def parse_decklist(lines: Iterable[str]) -> tuple[List[DeckEntry], List[str]]:
-    """
-    Return a list of *playable* card entries from a raw deck-list,
-    and also collect any basic-energy lines so we can re-add them.
-    """
     entries: List[DeckEntry] = []
     basic_energies: List[str] = []
 
@@ -52,7 +48,6 @@ def parse_decklist(lines: Iterable[str]) -> tuple[List[DeckEntry], List[str]]:
         line = raw.strip()
         if not line or not line[0].isdigit():
             continue
-        
         if line.lower().split(' ')[-2] == "energy":
             basic_energies.append(line)
             continue
@@ -60,43 +55,30 @@ def parse_decklist(lines: Iterable[str]) -> tuple[List[DeckEntry], List[str]]:
         match = LINE_RE.match(line)
         if not match:
             continue
-
         qty_str, name, set_code, card_no = match.groups()
-        qty = int(qty_str)
-        entries.append(DeckEntry(qty, name.strip(), set_code, card_no, raw))
+        entries.append(DeckEntry(int(qty_str), name.strip(), set_code, card_no, raw))
 
     return entries, basic_energies
 
+
 def get_rarity_rank(rarity: str) -> int:
-    """
-    Return the index of rarity in our RARITIES_ORDER,
-    or -1 if not found (meaning we treat it as "lowest" or skip).
-    """
     rarity = rarity.strip().lower()
     try:
         return RARITIES_ORDER.index(rarity)
     except ValueError:
         return -1
 
+
 def contains_any(string: str, words: list[str]) -> bool:
-    """Check if 'string' contains any of the items in 'words' as a substring."""
     s = string.lower()
     return any(w.lower() in s for w in words)
+
 
 def select_preferred_printing(
     card_type: str,
     base_printing: sqlite3.Row,
     related_printings: list[sqlite3.Row]
 ) -> sqlite3.Row:
-    """
-    Given the card_type and the 'related_printings' (plus the base_printing itself),
-    apply the filtering rules to pick the final printing we want in the deck:
-    - filter out certain rarities (e.g. 'shiny', 'rainbow', 'hyper' for supporters/pokémon),
-    - among what's left, pick the printing with the highest rarity rank
-      (i.e. largest index in RARITIES_ORDER)
-    - if there's a tie, pick the one with the latest date
-      (sorted by real date from parse_card_date).
-    """
     ctype = card_type.lower()
 
     if ctype == "special energy":
@@ -112,16 +94,14 @@ def select_preferred_printing(
             return related_printings[-1]
 
     if ctype == "supporter":
-        filtered = [r for r in related_printings
-                    if not contains_any(r["rarity"], EXCLUSION)]
+        filtered = [r for r in related_printings if not contains_any(r["rarity"], EXCLUSION)]
         if not filtered:
             return base_printing
         filtered.sort(key=lambda r: (get_rarity_rank(r["rarity"]), r["date"]))
         return filtered[-1]
 
     if ctype == "pokemon":
-        filtered = [r for r in related_printings
-                    if not contains_any(r["rarity"], POKEMON_EXCLUSION)]
+        filtered = [r for r in related_printings if not contains_any(r["rarity"], POKEMON_EXCLUSION)]
         if not filtered:
             return base_printing
         filtered.sort(key=lambda r: (get_rarity_rank(r["rarity"]), r["date"]))
@@ -129,34 +109,36 @@ def select_preferred_printing(
 
     return base_printing
 
+
+def print_option(idx: int, row: sqlite3.Row) -> None:
+    """Print a numbered option for selection."""
+    parts = [f"{idx}.", row["rarity"], row["set_name"].upper(), row["number"], row["date"]]
+    print("    " + " | ".join(str(p) for p in parts))
+
+
 def main():
-    deck_text = """Pokemon - 23
-4 Flaaffy SIT 3
-4 Mareep LOT 75
-2 Octillery BRS 3
-1 Radiant Greninja ASR 46
-4 Rayquaza V EVS 194
-4 Rayquaza VMAX SIT 20
-2 Remoraid BST 36
-1 Sylveon V EVS 184
-1 Sylveon V BRS 14
-Trainer - 24
-1 Earthen Vessel SFA 96
-4 Korrina's Focus BST 160
-2 Lysandre FLF 104
-2 Marnie PR-SW SWSH121
-2 Pokémon Communication HS 98
-1 Professor's Research PR-SW SWSH152
-4 Quick Ball SSH 216
-1 Sabrina's Suggestion TEU 181
-3 Tower of Waters BST 138
-2 Ultra Ball PLF 122
-1 Ultra Ball SUM 161
-1 Ultra Ball BRS 186
-Energy - 13
-6 Fire Energy 10
-7 Lightning Energy 135
-"""
+    deck_text = '''Pokemon - 16
+3 Iono's Bellibolt ex JTG 183
+2 Iono's Kilowattrel JTG 55
+3 Iono's Tadbulb JTG 52
+2 Iono's Voltorb JTG 47
+2 Iono's Wattrel JTG 54
+1 Miraidon ex SVI 81
+3 Raging Bolt ex TEF 123
+Trainer - 30
+2 Colress's Tenacity SFA 57
+1 Counter Catcher PAR 160
+3 Earthen Vessel PRE 106
+1 Iono PAL 185
+2 Jacq SVI 175
+3 Levincia JTG 150
+1 Nest Ball PAF 84
+2 Professor Sada's Vitality PAR 256
+3 Professor's Research PR-SW SWSH152
+2 Rigid Band MEW 165
+1 Scoop Up Cyclone PRE 128
+2 Superior Energy Retrieval PAL 189
+2 Switch SVI 194'''
 
     lines = deck_text.strip().splitlines()
     entries, basic_energy_lines = parse_decklist(lines)
@@ -165,7 +147,7 @@ Energy - 13
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    deck_counts = {}
+    deck_counts: dict[tuple[str, str, str, str], int] = {}
 
     def fetch_printing(set_code: str, card_no: str) -> sqlite3.Row | None:
         cur.execute(
@@ -191,80 +173,71 @@ Energy - 13
         return cur.fetchall()
 
     for entry in entries:
-        printing = fetch_printing(entry.set_code, entry.number)
-        if not printing:
+        base = fetch_printing(entry.set_code, entry.number)
+        if not base:
+            print(f"Warning: Base printing not found for {entry.name} {entry.set_code} {entry.number}")
             continue
 
-        related = fetch_related(printing)
+        related = fetch_related(base)
+        options = list(related)
+        if base not in related:
+            options.append(base)
 
-        if printing not in related:
-            related = list(related) + [printing]
+        print(f"Select printing for {entry.name} ({entry.set_code} {entry.number}):")
+        for idx, opt in enumerate(options, 1):
+            print_option(idx, opt)
 
-        final_row = select_preferred_printing(
-            printing["card_type"], printing, related
-        )
+        default_row = select_preferred_printing(base["card_type"], base, options)
+        default_idx = options.index(default_row) + 1
+        if len(options) == 1:
+            choice = 1
+        else:
+            choice = input(f"Enter choice [default {default_idx}]: ").strip()
+        try:
+            selected_idx = int(choice) if choice else default_idx
+        except ValueError:
+            selected_idx = default_idx
 
-        final_name = final_row["name"]
-        final_set = final_row["set_name"]
-        final_num = final_row["number"]
-        final_type = final_row["card_type"].lower()
+        if not 1 <= selected_idx <= len(options):
+            print(f"Invalid choice, using default {default_idx}.")
+            selected_idx = default_idx
 
-        key = (final_name, final_set, final_num, final_type)
+        final = options[selected_idx - 1]
+        key = (final["name"], final["set_name"], final["number"], final["card_type"].lower())
         deck_counts[key] = deck_counts.get(key, 0) + entry.quantity
 
     conn.close()
 
     def get_section(ctype: str) -> str:
-        ctype = ctype.lower()
-        if ctype == "pokemon":
-            return "Pokemon"
-        elif ctype == "energy" or ctype == "special energy":
-            return "Energy"
-        else:
-            return "Trainer"
+        ct = ctype.lower()
+        if ct == "pokemon": return "Pokemon"
+        if ct in ("energy", "special energy"): return "Energy"
+        return "Trainer"
 
-    final_list = []
-    for (name, set_name, number, ctype), q in deck_counts.items():
-        final_list.append((get_section(ctype), q, name, set_name, number, ctype))
-
+    final_list = [(get_section(t[3]), q, t[0], t[1], t[2]) for t,q in deck_counts.items()]
     SECTION_ORDER = ["Pokemon", "Trainer", "Energy"]
-
-    def section_sort_key(tup):
-        try:
-            idx = SECTION_ORDER.index(tup[0])
-        except ValueError:
-            idx = 999
-        return (idx, tup[2])
-
-    final_list.sort(key=section_sort_key)
+    final_list.sort(key=lambda x: (SECTION_ORDER.index(x[0]) if x[0] in SECTION_ORDER else 999, x[2]))
 
     from collections import defaultdict
     grouped = defaultdict(list)
-    for section, q, name, sname, num, ctype in final_list:
+    for section, q, name, sname, num in final_list:
         grouped[section].append((q, name, sname, num))
-
     for be_line in basic_energy_lines:
         qty = int(be_line.split(' ')[0])
         items = ' '.join(be_line.split(' ')[1:])
-        grouped["Energy"].append((qty, f"{items.replace('Basic ', '')}", "", ""))
+        grouped['Energy'].append((qty, items.replace('Basic ', ''), '', ''))
 
-    output_lines = []
-    for section_name in SECTION_ORDER:
-        if section_name not in grouped:
-            continue
-        lines_for_section = grouped[section_name]
-        total_count = sum(x[0] for x in lines_for_section)
-        output_lines.append(f"{section_name} - {total_count}")
-        for (q, name, sname, num) in lines_for_section:
-            if sname and num:
-                output_lines.append(f"{q} {name} {sname.upper()} {num.upper()}")
+    for sect in SECTION_ORDER:
+        if sect not in grouped: continue
+        lines = grouped[sect]
+        total = sum(x[0] for x in lines)
+        print(f"{sect} - {total}")
+        for q,name,snum,num in lines:
+            if snum and num:
+                print(f"{q} {name} {snum.upper()} {num.upper()}")
             else:
-                output_lines.append(f"{q} {name}")
-        output_lines.append("")
-
-    final_decklist = "\n".join(output_lines).strip("\n")
-    print(final_decklist)
-
+                print(f"{q} {name}")
+        print()
 
 if __name__ == "__main__":
     main()
