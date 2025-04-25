@@ -2,11 +2,8 @@ import re
 import sqlite3
 from typing import Iterable, List, NamedTuple
 
-deck = '''2 Cornerstone Mask Ogerpon ex TWM 112'''
+deck = """2 Cornerstone Mask Ogerpon ex TWM 112"""
 
-rarities = ['common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity', 'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v', 'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare', 'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x', 'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar', 'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime', 'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare', 'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax', 'amazing rare']
-exclusion = ['shiny', 'rainbow', 'hyper']
-pokemon_exclusion = exclusion + ['ultra']
 
 class DeckEntry(NamedTuple):
     quantity: int
@@ -15,14 +12,17 @@ class DeckEntry(NamedTuple):
     number: str
 
 
-LINE_RE = re.compile(r"""
+LINE_RE = re.compile(
+    r"""
     ^\s*
     (\d+)\s+
     (.*?)\s+
     ([A-Z0-9]+)\s+
     (\d+)\s*
     $
-""", re.VERBOSE)
+""",
+    re.VERBOSE,
+)
 
 
 def parse_decklist(lines: Iterable[str]) -> List[DeckEntry]:
@@ -55,13 +55,14 @@ def fetch_printing(set_code: str, card_no: str) -> sqlite3.Row | None:
     )
     return cur.fetchone()
 
+
 def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
     ctype = card_row["card_type"].lower()
 
     if ctype == "pokemon":
         first_attack = ""
         raw = card_row["attacks"]
-        
+
         first_attack = raw.split("e': '", 1)[1].split("'", 1)[0]
 
         cur.execute(
@@ -75,7 +76,7 @@ def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
             """,
             (card_row["name"], f"%{first_attack}%"),
         )
-    
+
     else:
         cur.execute(
             """
@@ -89,7 +90,6 @@ def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
         )
 
     return cur.fetchall()
-
 
 
 def print_row(row: sqlite3.Row) -> None:
@@ -106,6 +106,7 @@ def print_row(row: sqlite3.Row) -> None:
         row["img"],
     )
     print("    " + " | ".join(str(f) for f in fields if f is not None))
+
 
 entries = parse_decklist(deck.splitlines())
 conn = sqlite3.connect("pokemon_cards.db")
