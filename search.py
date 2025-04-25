@@ -3,7 +3,6 @@ import sqlite3
 from typing import Iterable, List, NamedTuple
 
 deck = """Pokemon - 15
-1 Iono's Bellibolt ex JTG 183
 2 Iono's Bellibolt ex JTG 53
 2 Iono's Kilowattrel JTG 55
 3 Iono's Tadbulb JTG 52

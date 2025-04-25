@@ -1,9 +1,5 @@
-
-from __future__ import annotations
-
 import re
 import sqlite3
-import textwrap
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 from pathlib import Path
@@ -35,10 +31,10 @@ class DeckEntry(NamedTuple):
 LINE_RE = re.compile(
     r"""
     ^\s*
-    (\d+)\s+            # quantity
+    (\d+)\s+             # quantity
     (.*?)\s+             # card name (greedy, stops at 2nd whitespace zone)
     ([A-Z0-9]+)\s+       # set code
-    (\d+)\s*            # card number
+    (\d+)\s*             # card number
     $
     """,
     re.VERBOSE,
@@ -46,7 +42,7 @@ LINE_RE = re.compile(
 
 
 def parse_decklist(raw: str) -> List[DeckEntry]:
-    """Return all typed‑line deck entries (Energy lines ignored)."""
+    """Return all typed-line deck entries (Energy lines ignored)."""
     entries: List[DeckEntry] = []
     for line in raw.splitlines():
         line = line.strip()
@@ -67,7 +63,7 @@ cur = conn.cursor()
 
 
 def fetch_printing(set_code: str, number: str):
-    """Return a single card row for one exact printing (case‑insensitive set)."""
+    """Return a single card row for one exact printing (case-insensitive set)."""
     cur.execute(
         "SELECT * FROM cards WHERE lower(set_name) = ? AND number = ? LIMIT 1",
         (set_code.lower(), number),
@@ -81,7 +77,7 @@ def fetch_related(card_row):
     For Pokémon we approximate this by matching the *first* attack name,
     for Trainers / Energy just match the exact card name & type.
     Rows are returned oldest → newest so that the **latest** printing is
-    the list tail (index ‑1).
+    the list tail (index -1).
     """
     ctype = card_row["card_type"].lower()
     if ctype == "pokemon":
@@ -129,7 +125,7 @@ st.set_page_config("Pokémon TCG – Deck Printing Picker", layout="wide")
 st.title("Pokémon TCG Deck Printing Picker 🃏")
 sub = (
     "Paste a Pokémon TCG deck list on the left, then pick the printing you want for each card. "
-    "When you’re done, copy or download the regenerated deck‑list!"
+    "When you’re done, copy or download the regenerated deck-list!"
 )
 st.markdown(sub)
 
@@ -139,7 +135,7 @@ with st.sidebar:
 
 
 def _canonical_key(card_row: sqlite3.Row) -> Tuple[str, str]:
-    """Return a key that uniquely identifies play‑equivalent printings."""
+    """Return a key that uniquely identifies play-equivalent printings."""
     ctype = card_row["card_type"].lower()
     if ctype == "pokemon":
         raw = card_row["attacks"] or ""
@@ -181,13 +177,12 @@ if rebuild or CARDS_KEY not in st.session_state:
     cards_data: List[Tuple[DeckEntry, List[sqlite3.Row]]] = []
     for key in aggregated:
         rec = aggregated[key]
-        cards_data.append((rec["entry"], rec["variations"]))
+        # 🔸 NEWEST FIRST (reverse the list)
+        cards_data.append((rec["entry"], list(reversed(rec["variations"]))))
 
+    # 🔸 Defaults now point to index 0 (newest)
     st.session_state[CARDS_KEY] = cards_data
-    st.session_state[SELECTIONS_KEY] = {
-        i: len(variations) - 1
-        for i, (_, variations) in enumerate(cards_data)
-    }
+    st.session_state[SELECTIONS_KEY] = {i: 0 for i, _ in enumerate(cards_data)}
 
 cards_data = st.session_state.get(CARDS_KEY, [])
 selections: Dict[int, int] = st.session_state.get(SELECTIONS_KEY, {})
@@ -199,16 +194,17 @@ for idx, (entry, variations) in enumerate(cards_data):
                       for row in variations]
         thumb_imgs = load_images(thumb_urls)
 
-        default_idx = selections.get(idx, len(variations) - 1)
+        # 🔸 Default is 0, matching the reversed list
+        default_idx = selections.get(idx, 0)
 
         picked_idx = image_select(
-            label          = "Choose another printing",
-            images         = thumb_imgs,
-            captions       = captions,
-            index          = default_idx,
-            return_value   = "index",
-            key            = f"pick-{idx}",
-            use_container_width = False,
+            label="Choose another printing",
+            images=thumb_imgs,
+            captions=captions,
+            index=default_idx,
+            return_value="index",
+            key=f"pick-{idx}",
+            use_container_width=False,
         )
 
         sel_idx = default_idx if picked_idx is None else picked_idx
@@ -217,15 +213,16 @@ for idx, (entry, variations) in enumerate(cards_data):
 
         st.image(
             thumb_imgs[sel_idx],
-            width   = MAIN_W,
-            caption = captions[sel_idx],
+            width=MAIN_W,
+            caption=captions[sel_idx],
         )
 
 
 def build_deck() -> str:
     out: List[str] = []
     for idx, (entry, variations) in enumerate(cards_data):
-        pick = selections.get(idx, len(variations) - 1)
+        # 🔸 Fall back to 0 (newest) if missing
+        pick = selections.get(idx, 0)
         row = variations[pick]
         out.append(f"{entry.quantity} {entry.name} {row['set_name'].upper()} {row['number']}")
     return "\n".join(out)
