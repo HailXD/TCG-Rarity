@@ -2,7 +2,28 @@ import re
 import sqlite3
 from typing import Iterable, List, NamedTuple
 
-deck = """2 Cornerstone Mask Ogerpon ex TWM 112"""
+deck = """Pokemon - 15
+1 Iono's Bellibolt ex JTG 183
+2 Iono's Bellibolt ex JTG 53
+2 Iono's Kilowattrel JTG 55
+3 Iono's Tadbulb JTG 52
+1 Iono's Voltorb JTG 47
+2 Iono's Wattrel JTG 54
+3 Raging Bolt ex TEF 123
+Trainer - 34
+2 Boss’s Orders (Ghetsis) PAL 172
+2 Boss’s Orders (Ghetsis) PAL 172
+1 Buddy-Buddy Poffin PRE 101
+3 Earthen Vessel PRE 106
+3 Energy Switch SVI 173
+1 Iono PAF 80
+2 Iono PAF 80
+3 Levincia JTG 150
+3 Nest Ball PAF 84
+2 Night Stretcher SFA 61
+2 Professor Sada's Vitality PRE 120
+3 Professor's Research PRE 125
+2 Superior Energy Retrieval PAL 189"""
 
 
 class DeckEntry(NamedTuple):
@@ -113,7 +134,15 @@ conn = sqlite3.connect("pokemon_cards.db")
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
+q = {}
 for qty, name, set_code, card_no in entries:
+    idx = f"{name}{set_code}{card_no}"
+    if idx not in q:
+        q[idx] = (qty, name, set_code, card_no)
+    else:
+        q[idx] = (q[idx][0] + qty, name, set_code, card_no)
+
+for qty, name, set_code, card_no in q.values():
     header = f"{qty} {name} {set_code} {card_no}"
     print(header)
     printing = fetch_printing(set_code, card_no)
