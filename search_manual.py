@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
-from typing import Iterable, List, NamedTuple 
+from typing import Iterable, List, NamedTuple
 
 RARITIES_ORDER = [
     'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
@@ -108,8 +108,14 @@ def select_preferred_printing(
 
 def print_option(idx: int, row: sqlite3.Row) -> None:
     """Print a numbered option for selection."""
-    parts = [f"{idx}.", row["rarity"], row["set_name"].upper(), row["number"], row["date"], row["img"]]
-    print("    " + " | ".join(str(p) for p in parts))
+    print(
+        f"    {idx:>{IDX_WIDTH}}. "
+        f"{row['rarity']:<{RARITY_WIDTH}} | "
+        f"{row['set_name'].upper():<{SET_NAME_WIDTH}} | "
+        f"{row['number']:<{NUMBER_WIDTH}} | "
+        f"{row['date']:<{DATE_WIDTH}} | "
+        f"{row['img']:<{IMG_WIDTH}}"
+    )
 
 
 def main():
@@ -179,6 +185,15 @@ Trainer - 30
         if base not in related:
             options.append(base)
 
+        # Compute column widths based on longest values
+        global IDX_WIDTH, RARITY_WIDTH, SET_NAME_WIDTH, NUMBER_WIDTH, DATE_WIDTH, IMG_WIDTH
+        IDX_WIDTH = len(str(len(options)))
+        RARITY_WIDTH = max(len(r["rarity"]) for r in options)
+        SET_NAME_WIDTH = max(len(r["set_name"].upper()) for r in options)
+        NUMBER_WIDTH = max(len(r["number"]) for r in options)
+        DATE_WIDTH = max(len(r["date"]) for r in options)
+        IMG_WIDTH = max(len(r["img"]) for r in options)
+
         print(f"Select printing for {entry.name} ({entry.set_code} {entry.number}):")
         for idx, opt in enumerate(options, 1):
             print_option(idx, opt)
@@ -186,7 +201,7 @@ Trainer - 30
         default_row = select_preferred_printing(base["card_type"], base, options)
         default_idx = options.index(default_row) + 1
         if len(options) == 1:
-            choice = 1
+            choice = '1'
         else:
             choice = input(f"Enter choice [default {default_idx}]: ").strip()
         try:
