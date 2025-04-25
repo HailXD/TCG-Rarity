@@ -283,27 +283,29 @@ for idx, (entry, variations) in enumerate(cards_data):
         captions = [f"{row['set_name'].upper()} {row['number']}" for row in variations]
         thumb_imgs = load_images(thumb_urls)
 
-        default_idx = selections.get(idx, _default_variation_index(variations))
-
-        picked_idx = image_select(
-            label="Choose another printing",
-            images=thumb_imgs,
-            captions=captions,
-            index=default_idx,
-            return_value="index",
-            key=f"pick-{idx}",
-            use_container_width=False,
-        )
-
-        sel_idx = default_idx if picked_idx is None else picked_idx
-        selections[idx] = sel_idx
-        st.session_state[SELECTIONS_KEY] = selections
+        sel_idx = selections.get(idx, _default_variation_index(variations))
 
         st.image(
             thumb_imgs[sel_idx],
             width=MAIN_W,
             caption=captions[sel_idx],
         )
+
+        picked_idx = image_select(
+            label="Choose another printing",
+            images=thumb_imgs,
+            captions=captions,
+            index=sel_idx,
+            return_value="index",
+            key=f"pick-{idx}",
+            use_container_width=False,
+        )
+
+        if picked_idx is not None:
+            sel_idx = picked_idx
+        selections[idx] = sel_idx
+        st.session_state[SELECTIONS_KEY] = selections
+
 
 
 def build_deck() -> str:
