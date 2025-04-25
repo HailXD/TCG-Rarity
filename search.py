@@ -2,31 +2,7 @@ import re
 import sqlite3
 from typing import Iterable, List, NamedTuple
 
-deck = '''Pokemon - 17
-3 Croconaw TEF 40
-3 Feraligatr TEF 41
-2 Mimikyu PAL 97
-3 Munkidori TWM 95
-2 Relicanth TEF 84
-4 Totodile TEF 39
-Trainer - 34
-2 Artazon PAF 76
-2 Arven OBF 186
-1 Boss’s Orders (Ghetsis) PAL 172
-3 Colress's Tenacity SFA 57
-3 Counter Catcher PAR 160
-1 Crispin PRE 105
-1 Earthen Vessel PRE 106
-1 Grand Tree SCR 136
-3 Iono PAF 80
-3 Lana's Aid TWM 155
-2 Luxurious Cape PAR 166
-1 Night Stretcher SFA 61
-4 Pokégear 3.0 SVI 186
-2 Professor's Research PRE 125
-1 Rescue Board PRE 126
-Energy - 1
-1 Luminous Energy PAL 191'''
+deck = '''2 Cornerstone Mask Ogerpon ex TWM 112'''
 
 rarities = ['common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity', 'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v', 'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare', 'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x', 'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar', 'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime', 'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare', 'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax', 'amazing rare']
 exclusion = ['shiny', 'rainbow', 'hyper']
@@ -124,8 +100,8 @@ def print_row(row: sqlite3.Row) -> None:
         f"HP {row['hp']}" if row["card_type"].lower() == "pokemon" else None,
         row["regulation"],
         row["rarity"],
-        row["set_name"].upper(),
         row["date"],
+        row["set_name"].upper(),
         row["number"],
         row["img"],
     )

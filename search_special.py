@@ -113,7 +113,7 @@ def select_preferred_printing(
 
     if ctype == "supporter":
         filtered = [r for r in related_printings
-                    if not contains_any(r["rarity"], EXCLUSION)]
+                    if not contains_any(r["rarity"], SUPPORT_EXCLUSION)]
         if not filtered:
             return base_printing
         filtered.sort(key=lambda r: (get_rarity_rank(r["rarity"]), r["date"]))
@@ -129,8 +129,7 @@ def select_preferred_printing(
 
     return base_printing
 
-def main():
-    deck_text = '''Pokemon - 16
+deck_text = '''Pokemon - 16
 3 Iono's Bellibolt ex JTG 183
 2 Iono's Kilowattrel JTG 55
 3 Iono's Tadbulb JTG 52
@@ -142,7 +141,7 @@ Trainer - 30
 2 Colress's Tenacity SFA 57
 1 Counter Catcher PAR 160
 3 Earthen Vessel PRE 106
-1 Iono PAL 185
+1 Iono PAL 269
 2 Jacq SVI 175
 3 Levincia JTG 150
 1 Nest Ball PAF 84
@@ -151,116 +150,202 @@ Trainer - 30
 2 Rigid Band MEW 165
 1 Scoop Up Cyclone PRE 128
 2 Superior Energy Retrieval PAL 189
-2 Switch SVI 194'''
+2 Switch SVI 194
+
+Pokemon - 17
+3 Croconaw TEF 40
+3 Feraligatr TEF 41
+2 Mimikyu PAL 97
+2 Munkidori TWM 95
+2 Relicanth TEF 84
+4 Totodile TEF 39
+Trainer - 34
+2 Artazon PAF 76
+2 Arven OBF 186
+1 Boss’s Orders (Ghetsis) PAL 172
+3 Colress's Tenacity SFA 57
+3 Counter Catcher PAR 160
+1 Crispin PRE 105
+1 Earthen Vessel PRE 106
+1 Grand Tree SCR 136
+3 Iono PAL 269
+3 Lana's Aid TWM 155
+2 Luxurious Cape PAR 166
+1 Night Stretcher SFA 61
+4 Pokégear 3.0 SVI 186
+2 Professor's Research PRE 125
+1 Rescue Board PRE 126
+Energy - 1
+1 Luminous Energy PAL 191
+
+Pokemon - 14
+2 Cornerstone Mask Ogerpon ex TWM 112
+1 Fezandipiti ex SFA 38
+1 Lumineon V BRS 40
+4 Okidogi TWM 111
+4 Okidogi ex SFA 36
+1 Pecharunt ex SFA 39
+Trainer - 34
+2 Arven OBF 186
+1 Boss’s Orders (Ghetsis) PAL 172
+4 Bravery Charm PAL 173
+4 Crispin SCR 133
+2 Earthen Vessel PAR 163
+2 Energy Switch SVI 173
+1 Hisuian Heavy Ball ASR 146
+2 Janine's Secret Art SFA 59
+2 Judge SVI 176
+2 Lost Vacuum CRZ 135
+4 Nest Ball PAF 84
+1 Penny SVI 183
+2 Switch SVI 194
+Energy - 12
+4 Luminous Energy PAL 191
+
+Pokemon - 20
+4 dedenne SIT 85
+2 minun PAR 194
+3 morpeko SIT 116
+4 pikachu SIT 49
+2 plusle PAR 193
+4 togedemaru SIT 127
+
+Trainer - 30
+3 arven PAF 235
+3 beach court SVI 167
+2 boss's orders PAL 265
+3 buddy-buddy poffin PRE 101
+2 clemont's quick wit SSP 243
+4 defiance band SVI 169
+2 earthen vessel PRE 106
+3 electric generator PAF 79
+2 lana's aid TWM 219
+2 nemona PAF 238
+4 nest ball PAF 84'''
 
 
-    lines = deck_text.strip().splitlines()
-    entries, basic_energy_lines = parse_decklist(lines)
+lines = deck_text.strip().splitlines()
+entries, basic_energy_lines = parse_decklist(lines)
 
-    conn = sqlite3.connect("pokemon_cards.db")
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+conn = sqlite3.connect("pokemon_cards.db")
+conn.row_factory = sqlite3.Row
+cur = conn.cursor()
 
-    deck_counts = {}
+deck_counts = {}
 
-    def fetch_printing(set_code: str, card_no: str) -> sqlite3.Row | None:
+def fetch_printing(set_code: str, card_no: str) -> sqlite3.Row | None:
+    cur.execute(
+        "SELECT * FROM cards WHERE lower(set_name) = ? AND number = ? LIMIT 1",
+        (set_code.lower(), card_no),
+    )
+    return cur.fetchone()
+
+def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
+    ctype = card_row["card_type"].lower()
+
+    if ctype == "pokemon":
+        first_attack = ""
+        raw = card_row["attacks"]
+        
+        first_attack = raw.split("e': '", 1)[1].split("'", 1)[0]
+
         cur.execute(
-            "SELECT * FROM cards WHERE lower(set_name) = ? AND number = ? LIMIT 1",
-            (set_code.lower(), card_no),
+            """
+            SELECT *
+            FROM cards
+            WHERE name            = ?
+                AND lower(card_type) = 'pokemon'
+                AND lower(attacks)   LIKE ?
+            ORDER BY julianday(date) ASC
+            """,
+            (card_row["name"], f"%{first_attack}%"),
         )
-        return cur.fetchone()
-
-    def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
-        ctype = card_row["card_type"].lower()
-        if ctype == "pokemon":
-            cur.execute("""
-                SELECT * FROM cards
-                WHERE name = ? AND hp = ? AND lower(card_type) = 'pokemon'
-                ORDER BY julianday(date) ASC
-            """, (card_row["name"], card_row["hp"]))
-        else:
-            cur.execute("""
-                SELECT * FROM cards
-                WHERE name = ? AND lower(card_type) = ?
-                ORDER BY julianday(date) ASC
-            """, (card_row["name"], ctype))
-        return cur.fetchall()
-
-    for entry in entries:
-        printing = fetch_printing(entry.set_code, entry.number)
-        if not printing:
-            continue
-
-        related = fetch_related(printing)
-
-        if printing not in related:
-            related = list(related) + [printing]
-
-        final_row = select_preferred_printing(
-            printing["card_type"], printing, related
+    
+    else:
+        cur.execute(
+            """
+            SELECT *
+            FROM cards
+            WHERE name              = ?
+              AND lower(card_type)  = ?
+            ORDER BY julianday(date) ASC
+            """,
+            (card_row["name"], ctype),
         )
 
-        final_name = final_row["name"]
-        final_set = final_row["set_name"]
-        final_num = final_row["number"]
-        final_type = final_row["card_type"].lower()
+    return cur.fetchall()
 
-        key = (final_name, final_set, final_num, final_type)
-        deck_counts[key] = deck_counts.get(key, 0) + entry.quantity
+for entry in entries:
+    printing = fetch_printing(entry.set_code, entry.number)
+    if not printing:
+        continue
 
-    conn.close()
+    related = fetch_related(printing)
 
-    def get_section(ctype: str) -> str:
-        ctype = ctype.lower()
-        if ctype == "pokemon":
-            return "Pokemon"
-        elif ctype == "energy" or ctype == "special energy":
-            return "Energy"
+    if printing not in related:
+        related = list(related) + [printing]
+
+    final_row = select_preferred_printing(
+        printing["card_type"], printing, related
+    )
+
+    final_name = final_row["name"]
+    final_set = final_row["set_name"]
+    final_num = final_row["number"]
+    final_type = final_row["card_type"].lower()
+
+    key = (final_name, final_set, final_num, final_type)
+    deck_counts[key] = deck_counts.get(key, 0) + entry.quantity
+
+conn.close()
+
+def get_section(ctype: str) -> str:
+    ctype = ctype.lower()
+    if ctype == "pokemon":
+        return "Pokemon"
+    elif ctype == "energy" or ctype == "special energy":
+        return "Energy"
+    else:
+        return "Trainer"
+
+final_list = []
+for (name, set_name, number, ctype), q in deck_counts.items():
+    final_list.append((get_section(ctype), q, name, set_name, number, ctype))
+
+SECTION_ORDER = ["Pokemon", "Trainer", "Energy"]
+
+def section_sort_key(tup):
+    try:
+        idx = SECTION_ORDER.index(tup[0])
+    except ValueError:
+        idx = 999
+    return (idx, tup[2])
+
+final_list.sort(key=section_sort_key)
+
+from collections import defaultdict
+grouped = defaultdict(list)
+for section, q, name, sname, num, ctype in final_list:
+    grouped[section].append((q, name, sname, num))
+
+for be_line in basic_energy_lines:
+    qty = int(be_line.split(' ')[0])
+    items = ' '.join(be_line.split(' ')[1:])
+    grouped["Energy"].append((qty, f"{items.replace('Basic ', '')}", "", ""))
+
+output_lines = []
+for section_name in SECTION_ORDER:
+    if section_name not in grouped:
+        continue
+    lines_for_section = grouped[section_name]
+    total_count = sum(x[0] for x in lines_for_section)
+    output_lines.append(f"{section_name} - {total_count}")
+    for (q, name, sname, num) in lines_for_section:
+        if sname and num:
+            output_lines.append(f"{q} {name} {sname.upper()} {num.upper()}")
         else:
-            return "Trainer"
+            output_lines.append(f"{q} {name}")
+    output_lines.append("")
 
-    final_list = []
-    for (name, set_name, number, ctype), q in deck_counts.items():
-        final_list.append((get_section(ctype), q, name, set_name, number, ctype))
-
-    SECTION_ORDER = ["Pokemon", "Trainer", "Energy"]
-
-    def section_sort_key(tup):
-        try:
-            idx = SECTION_ORDER.index(tup[0])
-        except ValueError:
-            idx = 999
-        return (idx, tup[2])
-
-    final_list.sort(key=section_sort_key)
-
-    from collections import defaultdict
-    grouped = defaultdict(list)
-    for section, q, name, sname, num, ctype in final_list:
-        grouped[section].append((q, name, sname, num))
-
-    for be_line in basic_energy_lines:
-        qty = int(be_line.split(' ')[0])
-        items = ' '.join(be_line.split(' ')[1:])
-        grouped["Energy"].append((qty, f"{items.replace('Basic ', '')}", "", ""))
-
-    output_lines = []
-    for section_name in SECTION_ORDER:
-        if section_name not in grouped:
-            continue
-        lines_for_section = grouped[section_name]
-        total_count = sum(x[0] for x in lines_for_section)
-        output_lines.append(f"{section_name} - {total_count}")
-        for (q, name, sname, num) in lines_for_section:
-            if sname and num:
-                output_lines.append(f"{q} {name} {sname.upper()} {num.upper()}")
-            else:
-                output_lines.append(f"{q} {name}")
-        output_lines.append("")
-
-    final_decklist = "\n".join(output_lines).strip("\n")
-    print(final_decklist)
-
-
-if __name__ == "__main__":
-    main()
+final_decklist = "\n".join(output_lines).strip("\n")
+print(final_decklist)

@@ -119,11 +119,33 @@ def print_option(idx: int, row: sqlite3.Row) -> None:
 
 
 def main():
-    deck_text = '''Pokemon - 17
+    deck_text = '''Pokemon - 16
+3 Iono's Bellibolt ex JTG 183
+2 Iono's Kilowattrel JTG 55
+3 Iono's Tadbulb JTG 52
+2 Iono's Voltorb JTG 47
+2 Iono's Wattrel JTG 54
+1 Miraidon ex SVI 81
+3 Raging Bolt ex TEF 123
+Trainer - 30
+2 Colress's Tenacity SFA 57
+1 Counter Catcher PAR 160
+3 Earthen Vessel PRE 106
+1 Iono PAL 185
+2 Jacq SVI 175
+3 Levincia JTG 150
+1 Nest Ball PAF 84
+2 Professor Sada's Vitality PAR 256
+3 Professor's Research PR-SW SWSH152
+2 Rigid Band MEW 165
+1 Scoop Up Cyclone PRE 128
+2 Superior Energy Retrieval PAL 189
+2 Switch SVI 194
+Pokemon - 17
 3 Croconaw TEF 40
 3 Feraligatr TEF 41
 2 Mimikyu PAL 97
-3 Munkidori TWM 95
+2 Munkidori TWM 95
 2 Relicanth TEF 84
 4 Totodile TEF 39
 Trainer - 34
@@ -143,7 +165,30 @@ Trainer - 34
 2 Professor's Research PRE 125
 1 Rescue Board PRE 126
 Energy - 1
-1 Luminous Energy PAL 191'''
+1 Luminous Energy PAL 191
+Pokemon - 14
+2 Cornerstone Mask Ogerpon ex TWM 112
+1 Fezandipiti ex SFA 38
+1 Lumineon V BRS 40
+4 Okidogi TWM 111
+4 Okidogi ex SFA 36
+1 Pecharunt ex SFA 39
+Trainer - 34
+2 Arven OBF 186
+1 Boss’s Orders (Ghetsis) PAL 172
+4 Bravery Charm PAL 173
+4 Crispin SCR 133
+2 Earthen Vessel PAR 163
+2 Energy Switch SVI 173
+1 Hisuian Heavy Ball ASR 146
+2 Janine's Secret Art SFA 59
+2 Judge SVI 176
+2 Lost Vacuum CRZ 135
+4 Nest Ball PAF 84
+1 Penny SVI 183
+2 Switch SVI 194
+Energy - 12
+4 Luminous Energy PAL 191 '''
 
     lines = deck_text.strip().splitlines()
     entries, basic_energy_lines = parse_decklist(lines)
