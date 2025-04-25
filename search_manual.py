@@ -108,7 +108,7 @@ def select_preferred_printing(
 
 def print_option(idx: int, row: sqlite3.Row) -> None:
     """Print a numbered option for selection."""
-    parts = [f"{idx}.", row["rarity"], row["set_name"].upper(), row["number"], row["date"]]
+    parts = [f"{idx}.", row["rarity"], row["set_name"].upper(), row["number"], row["date"], row["img"]]
     print("    " + " | ".join(str(p) for p in parts))
 
 
