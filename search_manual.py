@@ -88,7 +88,7 @@ def select_preferred_printing(
             return related_printings[-1]
 
     if ctype == "supporter":
-        filtered = [r for r in related_printings if not contains_any(r["rarity"], EXCLUSION)]
+        filtered = [r for r in related_printings if not contains_any(r["rarity"], SUPPORT_EXCLUSION)]
         if not filtered:
             return base_printing
         filtered.sort(key=lambda r: (get_rarity_rank(r["rarity"]), r["date"]))
@@ -119,76 +119,30 @@ def print_option(idx: int, row: sqlite3.Row) -> None:
 
 
 def main():
-    deck_text = '''Pokemon - 16
-3 Iono's Bellibolt ex JTG 183
+    deck_text = '''Pokemon - 15
+1 Iono's Bellibolt ex JTG 183
+2 Iono's Bellibolt ex JTG 53
 2 Iono's Kilowattrel JTG 55
 3 Iono's Tadbulb JTG 52
-2 Iono's Voltorb JTG 47
+1 Iono's Voltorb JTG 47
 2 Iono's Wattrel JTG 54
-1 Miraidon ex SVI 81
 3 Raging Bolt ex TEF 123
-Trainer - 30
-2 Colress's Tenacity SFA 57
-1 Counter Catcher PAR 160
+1 Squawkabilly ex PAL 169
+Trainer - 34
+2 Boss’s Orders (Ghetsis) PAL 172
+1 Boss’s Orders (Ghetsis) PAL 172
+1 Buddy-Buddy Poffin PRE 101
 3 Earthen Vessel PRE 106
-1 Iono PAL 185
-2 Jacq SVI 175
+3 Energy Switch SVI 173
+1 Iono PAF 80
+2 Iono PAF 80
 3 Levincia JTG 150
-1 Nest Ball PAF 84
-2 Professor Sada's Vitality PAR 256
-3 Professor's Research PR-SW SWSH152
-2 Rigid Band MEW 165
-1 Scoop Up Cyclone PRE 128
+3 Nest Ball PAF 84
+2 Night Stretcher SFA 61
+2 Professor Sada's Vitality PRE 120
+3 Professor's Research PRE 125
 2 Superior Energy Retrieval PAL 189
-2 Switch SVI 194
-Pokemon - 17
-3 Croconaw TEF 40
-3 Feraligatr TEF 41
-2 Mimikyu PAL 97
-2 Munkidori TWM 95
-2 Relicanth TEF 84
-4 Totodile TEF 39
-Trainer - 34
-2 Artazon PAF 76
-2 Arven OBF 186
-1 Boss’s Orders (Ghetsis) PAL 172
-3 Colress's Tenacity SFA 57
-3 Counter Catcher PAR 160
-1 Crispin PRE 105
-1 Earthen Vessel PRE 106
-1 Grand Tree SCR 136
-3 Iono PAF 80
-3 Lana's Aid TWM 155
-2 Luxurious Cape PAR 166
-1 Night Stretcher SFA 61
-4 Pokégear 3.0 SVI 186
-2 Professor's Research PRE 125
-1 Rescue Board PRE 126
-Energy - 1
-1 Luminous Energy PAL 191
-Pokemon - 14
-2 Cornerstone Mask Ogerpon ex TWM 112
-1 Fezandipiti ex SFA 38
-1 Lumineon V BRS 40
-4 Okidogi TWM 111
-4 Okidogi ex SFA 36
-1 Pecharunt ex SFA 39
-Trainer - 34
-2 Arven OBF 186
-1 Boss’s Orders (Ghetsis) PAL 172
-4 Bravery Charm PAL 173
-4 Crispin SCR 133
-2 Earthen Vessel PAR 163
-2 Energy Switch SVI 173
-1 Hisuian Heavy Ball ASR 146
-2 Janine's Secret Art SFA 59
-2 Judge SVI 176
-2 Lost Vacuum CRZ 135
-4 Nest Ball PAF 84
-1 Penny SVI 183
-2 Switch SVI 194
-Energy - 12
-4 Luminous Energy PAL 191 '''
+2 Ultra Ball PAF 91'''
 
     lines = deck_text.strip().splitlines()
     entries, basic_energy_lines = parse_decklist(lines)
