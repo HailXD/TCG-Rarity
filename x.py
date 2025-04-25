@@ -1,14 +1,3 @@
-# deck_webui.py
-# ------------------------------------------------------------
-# A pure‑Python Streamlit web UI for selecting alternate printings
-# for a Pokémon TCG deck‑list. Paste a deck‑list, inspect the card
-# images pulled from your local **pokemon_cards.db** SQLite DB, and
-# swap any printing simply by clicking its thumbnail. When you’re
-# done, copy the regenerated deck‑list that matches your selections.
-#
-# -- Requirements --
-#   pip install streamlit pillow streamlit-image-select
-# ------------------------------------------------------------
 
 from __future__ import annotations
 
@@ -24,27 +13,18 @@ import requests
 import streamlit as st
 from PIL import Image
 
-# ------------------------------------------------------------------
-# Mandatory dependency: streamlit‑image‑select for a slick tile picker
-# ------------------------------------------------------------------
 try:
-    from streamlit_image_select import image_select  # type: ignore
+    from streamlit_image_select import image_select
 except ModuleNotFoundError:
     st.error(
         "Missing required package **streamlit-image-select**. Install it with:\n    pip install streamlit-image-select"
     )
     st.stop()
 
-# ------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------
-DB_PATH = Path("pokemon_cards.db")  # adjust if your DB lives elsewhere
-THUMB_W, MAIN_W = 110, 300          # thumbnail & main‑image widths (px)
-MAX_PARALLEL = 8                    # concurrent download workers
+DB_PATH = Path("pokemon_cards.db")
+THUMB_W, MAIN_W = 110, 300
+MAX_PARALLEL = 8
 
-# ------------------------------------------------------------
-# Helpers for deck parsing & DB access
-# ------------------------------------------------------------
 class DeckEntry(NamedTuple):
     quantity: int
     name: str
@@ -66,6 +46,7 @@ LINE_RE = re.compile(
 
 
 def parse_decklist(raw: str) -> List[DeckEntry]:
+    """Return all typed‑line deck entries (Energy lines ignored)."""
     entries: List[DeckEntry] = []
     for line in raw.splitlines():
         line = line.strip()
@@ -80,15 +61,13 @@ def parse_decklist(raw: str) -> List[DeckEntry]:
         entries.append(DeckEntry(int(qty), name.strip(), set_code, num))
     return entries
 
-# ------------------------------------------------------------
-# DB helpers – using the schema implied by the question
-# ------------------------------------------------------------
 conn = sqlite3.connect(DB_PATH)
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 
 
 def fetch_printing(set_code: str, number: str):
+    """Return a single card row for one exact printing (case‑insensitive set)."""
     cur.execute(
         "SELECT * FROM cards WHERE lower(set_name) = ? AND number = ? LIMIT 1",
         (set_code.lower(), number),
@@ -97,6 +76,13 @@ def fetch_printing(set_code: str, number: str):
 
 
 def fetch_related(card_row):
+    """Return *all* printings that are functionally the same card.
+
+    For Pokémon we approximate this by matching the *first* attack name,
+    for Trainers / Energy just match the exact card name & type.
+    Rows are returned oldest → newest so that the **latest** printing is
+    the list tail (index ‑1).
+    """
     ctype = card_row["card_type"].lower()
     if ctype == "pokemon":
         raw = card_row["attacks"] or ""
@@ -122,9 +108,6 @@ def fetch_related(card_row):
         )
     return cur.fetchall() or [card_row]
 
-# ------------------------------------------------------------
-# Parallel image fetching (cached)
-# ------------------------------------------------------------
 
 @st.cache_data(show_spinner=False)
 def load_images(urls: Tuple[str, ...]) -> List[Image.Image]:
@@ -138,15 +121,9 @@ def load_images(urls: Tuple[str, ...]) -> List[Image.Image]:
     with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL, len(urls))) as pool:
         return list(pool.map(_fetch, urls))
 
-# ------------------------------------------------------------
-# Session‑state keys
-# ------------------------------------------------------------
 CARDS_KEY = "cards_data"
 SELECTIONS_KEY = "picks"
 
-# ------------------------------------------------------------
-# Streamlit Layout
-# ------------------------------------------------------------
 st.set_page_config("Pokémon TCG – Deck Printing Picker", layout="wide")
 
 st.title("Pokémon TCG Deck Printing Picker 🃏")
@@ -157,91 +134,102 @@ sub = (
 st.markdown(sub)
 
 with st.sidebar:
-    sample_deck = textwrap.dedent(
-        """
-            Pokemon - 15
-            1 Iono's Bellibolt ex JTG 183
-            Trainer - 34
-            1 Boss’s Orders (Ghetsis) PAL 172
-            1 Boss’s Orders (Ghetsis) PAL 172
-        """
-    ).strip()
-
-    raw_deck = st.text_area("Deck list", sample_deck, height=400)
+    raw_deck = st.text_area("Deck list", "", height=400)
     rebuild = st.button("Parse / Rebuild UI ↻", use_container_width=True)
 
-# ------------------------------------------------------------
-# Build data structures
-# ------------------------------------------------------------
-if rebuild or CARDS_KEY not in st.session_state:
-    entries = parse_decklist(raw_deck)
-    uniq: Dict[str, DeckEntry] = {}
-    for e in entries:
-        k = f"{e.name}|{e.set_code}|{e.number}"
-        if k in uniq:
-            uniq[k] = uniq[k]._replace(quantity=uniq[k].quantity + e.quantity)
-        else:
-            uniq[k] = e
 
-    cards_data: List[Tuple[DeckEntry, List[sqlite3.Row]]] = []
-    for entry in uniq.values():
+def _canonical_key(card_row: sqlite3.Row) -> Tuple[str, str]:
+    """Return a key that uniquely identifies play‑equivalent printings."""
+    ctype = card_row["card_type"].lower()
+    if ctype == "pokemon":
+        raw = card_row["attacks"] or ""
+        try:
+            first_attack = raw.split("e': '", 1)[1].split("'", 1)[0].lower()
+        except IndexError:
+            first_attack = ""
+        return (card_row["name"].lower(), first_attack)
+    return (card_row["name"].lower(), ctype)
+
+
+if rebuild or CARDS_KEY not in st.session_state:
+    parsed_entries = parse_decklist(raw_deck)
+
+    aggregated: Dict[Tuple[str, str], Dict[str, object]] = {}
+
+    for entry in parsed_entries:
         base = fetch_printing(entry.set_code, entry.number)
         if base is None:
             st.warning(f"Not found in DB → {entry}")
             continue
-        cards_data.append((entry, fetch_related(base)))
+
+        key = _canonical_key(base)
+
+        if key not in aggregated:
+            variations = fetch_related(base)
+            aggregated[key] = {
+                "entry": DeckEntry(entry.quantity, base["name"], "", ""),
+                "variations": variations,
+            }
+        else:
+            old_entry: DeckEntry = aggregated[key]["entry"]
+            aggregated[key]["entry"] = old_entry._replace(quantity=old_entry.quantity + entry.quantity)
+            seen = {(v["set_name"], v["number"]) for v in aggregated[key]["variations"]}
+            for v in fetch_related(base):
+                if (v["set_name"], v["number"]) not in seen:
+                    aggregated[key]["variations"].append(v)
+
+    cards_data: List[Tuple[DeckEntry, List[sqlite3.Row]]] = []
+    for key in aggregated:
+        rec = aggregated[key]
+        cards_data.append((rec["entry"], rec["variations"]))
 
     st.session_state[CARDS_KEY] = cards_data
-    st.session_state[SELECTIONS_KEY] = {i: 0 for i in range(len(cards_data))}
+    st.session_state[SELECTIONS_KEY] = {
+        i: len(variations) - 1
+        for i, (_, variations) in enumerate(cards_data)
+    }
 
 cards_data = st.session_state.get(CARDS_KEY, [])
-selections = st.session_state.get(SELECTIONS_KEY, {})
+selections: Dict[int, int] = st.session_state.get(SELECTIONS_KEY, {})
 
-# ------------------------------------------------------------
-# Interactive card pickers – sections expanded by default
-# ------------------------------------------------------------
 for idx, (entry, variations) in enumerate(cards_data):
     with st.expander(f"{entry.quantity}× {entry.name}", expanded=True):
         thumb_urls = tuple(row["img"] for row in variations)
-        captions   = [f"{row['set_name'].upper()} {row['number']}" for row in variations]
-
-        # Parallel fetch (cached) of all thumbnails
+        captions   = [f"{row['set_name'].upper()} {row['number']}"
+                      for row in variations]
         thumb_imgs = load_images(thumb_urls)
 
-        # Display current choice
-        sel_idx = selections.get(idx, 0)
+        default_idx = selections.get(idx, len(variations) - 1)
+
+        picked_idx = image_select(
+            label          = "Choose another printing",
+            images         = thumb_imgs,
+            captions       = captions,
+            index          = default_idx,
+            return_value   = "index",
+            key            = f"pick-{idx}",
+            use_container_width = False,
+        )
+
+        sel_idx = default_idx if picked_idx is None else picked_idx
+        selections[idx] = sel_idx
+        st.session_state[SELECTIONS_KEY] = selections
+
         st.image(
             thumb_imgs[sel_idx],
-            width=MAIN_W,
-            caption=captions[sel_idx],
+            width   = MAIN_W,
+            caption = captions[sel_idx],
         )
 
-        # Image picker – click thumbnail to choose
-        picked_idx = image_select(
-            label="Choose another printing",
-            images=thumb_imgs,
-            captions=captions,
-            index=sel_idx,
-            return_value="index",
-            key=f"pick-{idx}",
-            use_container_width=False,
-        )
-
-        if picked_idx is not None and picked_idx != sel_idx:
-            selections[idx] = picked_idx
-            st.session_state[SELECTIONS_KEY] = selections
-            st.experimental_rerun()
-
-# ------------------------------------------------------------
-# Output deck list
-# ------------------------------------------------------------
 
 def build_deck() -> str:
     out: List[str] = []
     for idx, (entry, variations) in enumerate(cards_data):
-        row = variations[selections.get(idx, 0)]
+        pick = selections.get(idx, len(variations) - 1)
+        row = variations[pick]
         out.append(f"{entry.quantity} {entry.name} {row['set_name'].upper()} {row['number']}")
     return "\n".join(out)
+
 
 st.markdown("---")
 col_a, col_b = st.columns([3, 1])
@@ -251,9 +239,6 @@ with col_a:
 with col_b:
     st.download_button("📄 Download", new_deck, "updated_decklist.txt", mime="text/plain")
 
-# ------------------------------------------------------------
-# Close connection on app shutdown
-# ------------------------------------------------------------
 @st.cache_resource(show_spinner=False)
 def _close_conn():
     return conn
