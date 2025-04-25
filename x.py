@@ -17,9 +17,86 @@ except ModuleNotFoundError:
     )
     st.stop()
 
+
+RARITIES_ORDER: List[str] = [
+    "common",
+    "uncommon",
+    "rare",
+    "rare holo",
+    "promo",
+    "ultra rare",
+    "no rarity",
+    "rainbow rare",
+    "rare holo ex",
+    "rare secret",
+    "shiny rare",
+    "holo rare v",
+    "illustration rare",
+    "double rare",
+    "rare holo gx",
+    "special illustration rare",
+    "holo rare vmax",
+    "trainer gallery holo rare",
+    "hyper rare",
+    "rare holo lv.x",
+    "trainer gallery holo rare v",
+    "ace spec rare",
+    "rare shiny gx",
+    "holo rare vstar",
+    "trainer gallery ultra rare",
+    "rare break",
+    "rare prism star",
+    "rare prime",
+    "rare holo star",
+    "legend",
+    "rare shining",
+    "shiny rare v or vmax",
+    "radiant rare",
+    "shiny ultra rare",
+    "trainer gallery secret rare",
+    "trainer gallery holo rare v or vmax",
+    "amazing rare",
+]
+
+EXCLUSION = ["shiny", "rainbow", "hyper"]
+SUPPORT_EXCLUSION = EXCLUSION + ["gallery"]
+POKEMON_EXCLUSION = EXCLUSION + ["ultra"]
+
+
+def _rarity_rank(rarity: str) -> int:
+    """Return the index of *rarity* inside RARITIES_ORDER (−1 if unknown)."""
+    rarity = rarity.lower()
+    try:
+        return RARITIES_ORDER.index(rarity)
+    except ValueError:
+        return -1
+
+
+def _default_variation_index(variations: List[sqlite3.Row]) -> int:
+    """Pick the best variation according to rarity & exclusion rules."""
+    best_idx = 0
+    best_rank = -1
+
+    for i, row in enumerate(variations):
+        rarity = (row["rarity"] or "").lower()
+        ctype = (row["card_type"] or "").lower()
+        exclusions = POKEMON_EXCLUSION if ctype == "pokemon" else SUPPORT_EXCLUSION
+
+        if any(token in rarity for token in exclusions):
+            continue
+
+        rank = _rarity_rank(rarity)
+        if rank > best_rank:
+            best_idx = i
+            best_rank = rank
+
+    return best_idx
+
+
 DB_PATH = Path("pokemon_cards.db")
 THUMB_W, MAIN_W = 110, 300
 MAX_PARALLEL = 8
+
 
 class DeckEntry(NamedTuple):
     quantity: int
@@ -56,6 +133,7 @@ def parse_decklist(raw: str) -> List[DeckEntry]:
             continue
         entries.append(DeckEntry(int(qty), name.strip(), set_code, num))
     return entries
+
 
 conn = sqlite3.connect(DB_PATH)
 conn.row_factory = sqlite3.Row
@@ -117,6 +195,7 @@ def load_images(urls: Tuple[str, ...]) -> List[Image.Image]:
     with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL, len(urls))) as pool:
         return list(pool.map(_fetch, urls))
 
+
 CARDS_KEY = "cards_data"
 SELECTIONS_KEY = "picks"
 
@@ -147,6 +226,7 @@ def _canonical_key(card_row: sqlite3.Row) -> Tuple[str, str]:
     return (card_row["name"].lower(), ctype)
 
 
+
 if rebuild or CARDS_KEY not in st.session_state:
     parsed_entries = parse_decklist(raw_deck)
 
@@ -168,7 +248,9 @@ if rebuild or CARDS_KEY not in st.session_state:
             }
         else:
             old_entry: DeckEntry = aggregated[key]["entry"]
-            aggregated[key]["entry"] = old_entry._replace(quantity=old_entry.quantity + entry.quantity)
+            aggregated[key]["entry"] = old_entry._replace(
+                quantity=old_entry.quantity + entry.quantity
+            )
             seen = {(v["set_name"], v["number"]) for v in aggregated[key]["variations"]}
             for v in fetch_related(base):
                 if (v["set_name"], v["number"]) not in seen:
@@ -177,12 +259,16 @@ if rebuild or CARDS_KEY not in st.session_state:
     cards_data: List[Tuple[DeckEntry, List[sqlite3.Row]]] = []
     for key in aggregated:
         rec = aggregated[key]
-        # 🔸 NEWEST FIRST (reverse the list)
-        cards_data.append((rec["entry"], list(reversed(rec["variations"]))))
+        rec_variations = list(reversed(rec["variations"]))
+        cards_data.append((rec["entry"], rec_variations))
 
-    # 🔸 Defaults now point to index 0 (newest)
+    default_picks: Dict[int, int] = {}
+    for idx, (_, variations) in enumerate(cards_data):
+        default_picks[idx] = _default_variation_index(variations)
+
     st.session_state[CARDS_KEY] = cards_data
-    st.session_state[SELECTIONS_KEY] = {i: 0 for i, _ in enumerate(cards_data)}
+    st.session_state[SELECTIONS_KEY] = default_picks
+
 
 cards_data = st.session_state.get(CARDS_KEY, [])
 selections: Dict[int, int] = st.session_state.get(SELECTIONS_KEY, {})
@@ -190,12 +276,10 @@ selections: Dict[int, int] = st.session_state.get(SELECTIONS_KEY, {})
 for idx, (entry, variations) in enumerate(cards_data):
     with st.expander(f"{entry.quantity}× {entry.name}", expanded=True):
         thumb_urls = tuple(row["img"] for row in variations)
-        captions   = [f"{row['set_name'].upper()} {row['number']}"
-                      for row in variations]
+        captions = [f"{row['set_name'].upper()} {row['number']}" for row in variations]
         thumb_imgs = load_images(thumb_urls)
 
-        # 🔸 Default is 0, matching the reversed list
-        default_idx = selections.get(idx, 0)
+        default_idx = selections.get(idx, _default_variation_index(variations))
 
         picked_idx = image_select(
             label="Choose another printing",
@@ -218,10 +302,11 @@ for idx, (entry, variations) in enumerate(cards_data):
         )
 
 
+
+
 def build_deck() -> str:
     out: List[str] = []
     for idx, (entry, variations) in enumerate(cards_data):
-        # 🔸 Fall back to 0 (newest) if missing
         pick = selections.get(idx, 0)
         row = variations[pick]
         out.append(f"{entry.quantity} {entry.name} {row['set_name'].upper()} {row['number']}")
@@ -235,6 +320,7 @@ with col_a:
     st.text_area("Updated deck list", new_deck, height=300)
 with col_b:
     st.download_button("📄 Download", new_deck, "updated_decklist.txt", mime="text/plain")
+
 
 @st.cache_resource(show_spinner=False)
 def _close_conn():
