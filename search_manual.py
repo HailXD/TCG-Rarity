@@ -1,7 +1,6 @@
-from __future__ import annotations
-
 import re
 import sqlite3
+import requests
 from typing import Iterable, List, NamedTuple
 
 RARITIES_ORDER = [
@@ -108,13 +107,16 @@ def select_preferred_printing(
 
 def print_option(idx: int, row: sqlite3.Row) -> None:
     """Print a numbered option for selection."""
+    card_no = f"{row['set_code']}-{row['number']}"
+    price = requests.get(f"https://api.pokemontcg.io/v2/cards/{card_no}").json().get("data", {}).get("cardmarket", {}).get("prices", {}).get("averageSellPrice", "0")
     print(
         f"    {idx:>{IDX_WIDTH}}. "
         f"{row['rarity']:<{RARITY_WIDTH}} | "
         f"{row['set_name'].upper():<{SET_NAME_WIDTH}} | "
         f"{row['number']:<{NUMBER_WIDTH}} | "
         f"{row['date']:<{DATE_WIDTH}} | "
-        f"{row['img']:<{IMG_WIDTH}}"
+        f"{row['img']:<{IMG_WIDTH}} | "
+        f"{card_no} | ${price}"
     )
 
 
