@@ -1,6 +1,5 @@
 import re
 import sqlite3
-import requests
 from typing import Iterable, List, NamedTuple
 
 RARITIES_ORDER = [
@@ -108,7 +107,6 @@ def select_preferred_printing(
 def print_option(idx: int, row: sqlite3.Row) -> None:
     """Print a numbered option for selection."""
     card_no = f"{row['set_code']}-{row['number']}"
-    price = requests.get(f"https://api.pokemontcg.io/v2/cards/{card_no}").json().get("data", {}).get("cardmarket", {}).get("prices", {}).get("averageSellPrice", "0")
     print(
         f"    {idx:>{IDX_WIDTH}}. "
         f"{row['rarity']:<{RARITY_WIDTH}} | "
@@ -116,33 +114,36 @@ def print_option(idx: int, row: sqlite3.Row) -> None:
         f"{row['number']:<{NUMBER_WIDTH}} | "
         f"{row['date']:<{DATE_WIDTH}} | "
         f"{row['img']:<{IMG_WIDTH}} | "
-        f"{card_no} | ${price}"
+        f"{card_no}"
     )
 
 
 def main():
-    deck_text = '''Pokemon - 16
-3 Iono's Bellibolt ex JTG 183
-2 Iono's Kilowattrel JTG 55
-3 Iono's Tadbulb JTG 52
-2 Iono's Voltorb JTG 47
-2 Iono's Wattrel JTG 54
-1 Miraidon ex SVI 81
-3 Raging Bolt ex TEF 123
-Trainer - 30
-2 Colress's Tenacity SFA 57
-1 Counter Catcher PAR 160
-3 Earthen Vessel PRE 106
-1 Iono PAL 185
-2 Jacq SVI 175
-3 Levincia JTG 150
-1 Nest Ball PAF 84
-2 Professor Sada's Vitality PAR 256
-3 Professor's Research PR-SW SWSH152
-2 Rigid Band MEW 165
-1 Scoop Up Cyclone PRE 128
-2 Superior Energy Retrieval PAL 189
-2 Switch SVI 194'''
+    deck_text = '''Pokemon - 17
+3 Croconaw TEF 40
+3 Feraligatr TEF 41
+2 Mimikyu PAL 97
+3 Munkidori TWM 95
+2 Relicanth TEF 84
+4 Totodile TEF 39
+Trainer - 34
+2 Artazon PAF 76
+2 Arven OBF 186
+1 Boss’s Orders (Ghetsis) PAL 172
+3 Colress's Tenacity SFA 57
+3 Counter Catcher PAR 160
+1 Crispin PRE 105
+1 Earthen Vessel PRE 106
+1 Grand Tree SCR 136
+3 Iono PAF 80
+3 Lana's Aid TWM 155
+2 Luxurious Cape PAR 166
+1 Night Stretcher SFA 61
+4 Pokégear 3.0 SVI 186
+2 Professor's Research PRE 125
+1 Rescue Board PRE 126
+Energy - 1
+1 Luminous Energy PAL 191'''
 
     lines = deck_text.strip().splitlines()
     entries, basic_energy_lines = parse_decklist(lines)
@@ -162,19 +163,39 @@ Trainer - 30
 
     def fetch_related(card_row: sqlite3.Row) -> list[sqlite3.Row]:
         ctype = card_row["card_type"].lower()
+
         if ctype == "pokemon":
-            cur.execute("""
-                SELECT * FROM cards
-                WHERE name = ? AND hp = ? AND lower(card_type) = 'pokemon'
+            first_attack = ""
+            raw = card_row["attacks"]
+            
+            first_attack = raw.split("e': '", 1)[1].split("'", 1)[0]
+
+            cur.execute(
+                """
+                SELECT *
+                FROM cards
+                WHERE name            = ?
+                    AND lower(card_type) = 'pokemon'
+                    AND lower(attacks)   LIKE ?
                 ORDER BY julianday(date) ASC
-            """, (card_row["name"], card_row["hp"]))
+                """,
+                (card_row["name"], f"%{first_attack}%"),
+            )
+        
         else:
-            cur.execute("""
-                SELECT * FROM cards
-                WHERE name = ? AND lower(card_type) = ?
+            cur.execute(
+                """
+                SELECT *
+                FROM cards
+                WHERE name              = ?
+                AND lower(card_type)  = ?
                 ORDER BY julianday(date) ASC
-            """, (card_row["name"], ctype))
+                """,
+                (card_row["name"], ctype),
+            )
+
         return cur.fetchall()
+
 
     for entry in entries:
         base = fetch_printing(entry.set_code, entry.number)
