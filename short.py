@@ -31,6 +31,7 @@ As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 3 Ligh
 ===
 Notes:
 Explain the synergy and strategy
+Don't write comments in the json
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
@@ -85,6 +86,8 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 s = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|"
             else:
                 s = f"{c['name']}|"
+            if c['rarity'] == 'ace spec rare':
+                s += 'ace spec|'
             if c['hp'] and c['hp'].lower() != 'none':  
                 s += f"HP:{c['hp']}|"
             if c['types'] and c['types'].lower() != 'none':  
