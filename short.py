@@ -11,17 +11,24 @@ V:Vstar Power
 T:Types
 EF:Evolve From
 ===
+Return your results a dictionary in the format:
+```Deck
+{
+    "ID": Count, # Name (Type)
+    "ID": Count, # Name (Type)
+    "Dark Energy": Count, # (Type)
+    "Lightning Energy: Count # (Type)
+}
+```
+Comments
+===
 Notes:
 Explain the synergy and strategy
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
-===
-Return your results in the format:
-```Deck
-[ID.Count,ID.Count,...,Dark Energy.Count,Lightning Energy.Count,...]
 Names are only for energy cards that have no ID, if have ID, use ID
-```
+Type can be Pokemon, Trainer or Energy
 ===
 Create a deck'''  
 
