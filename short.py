@@ -63,7 +63,10 @@ def write_cards_txt(cards, out_path="cards.txt"):
   
     with open(out_path, 'w', encoding='utf-8') as f:  
         for c in selected:  
-            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {''.join(filter(str.isdigit, c['number']))}\n")  
+            # number remove leading zeroes before writing
+            number = ''.join(filter(str.isdigit, c['number']))
+            number = number.lstrip('0') if number else '0'
+            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {number}\n")
             if c['card_type'] and c['card_type'].lower() == 'stadium':  
                 f.write("ST\n")  
             if c['card_type'] and c['card_type'].lower() == 'item':  
