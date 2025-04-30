@@ -29,6 +29,7 @@ Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
 Names are only for energy cards that have no ID, if have ID, use ID
 Type can be Pokemon, Trainer or Energy
+After each Card, write comments after # (It's python) with the name and type of the card
 ===
 Create a deck'''  
 
