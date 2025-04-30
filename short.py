@@ -36,6 +36,7 @@ For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
 Type can be Pokemon, Trainer or Energy
+For Special Energies, classify them as "Energy"
 Names are only for energy cards that have no ID, if have ID, use ID
 The notes does not need to be in dictionary form, it can be outside the json block
 ===
