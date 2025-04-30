@@ -14,21 +14,18 @@ EF:Evolve From
 Return your results a dictionary in the format:
 ```json
 {
-    ID: Count, # Name (Type)
-    ID: Count, # Name (Type)
-    "Dark Energy": Count, # (Type)
-    "Lightning Energy: Count # (Type)
+    "Pokemon ID": [Count, "Pokemon"],
+    "Trainer Name": [Count, "Trainer"],
+    "Energy Type": [Count, "Energy"],
 }
+```
+As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 3 Lightning Energy, that entry will look like
+```json
 {
-    ID: [Count,Name,Type],
-    ID: [Count,Name,Type],
-    "Dark Energy": [Count,Type],
-    "Lightning Energy: [Count,Type]
-}
-2758.arcanine SP 304|...
-As an example, if you wanted 3 Arcanine SP 304, that entry will look like
-{
-    2758: [4,"arcanine SP 304","Pokemon"]
+    "arcanine SP 304": [3,"Pokemon"],
+    "Iono": [3,"Trainer"],
+    "Dark Energy": [2,"Energy"],
+    "Lightning Energy": [3,"Energy"]
 }
 ```
 ===
@@ -39,8 +36,7 @@ Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
 Type can be Pokemon, Trainer or Energy
 Names are only for energy cards that have no ID, if have ID, use ID
-The notes does not need to be in dictionary form, it can be outside the markdown
-After each Card, write comments after # (It's python) with the name and type of the card
+The notes does not need to be in dictionary form, it can be outside the json block
 ===
 Create a deck'''  
 
@@ -73,7 +69,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
     selected.sort(key=lambda c: (int(''.join(filter(str.isdigit, c['number'])))))  
   
     with open(out_path, 'w', encoding='utf-8') as f:  
-        for idx, c in enumerate(selected):  
+        for c in selected:  
             n = ''
             found = False
             for i in c['number'].upper():
@@ -85,7 +81,10 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
-            s = f"{idx}.{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|"
+            if c['card_type'] == 'pokemon':
+                s = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|"
+            else:
+                s = f"{c['name']}|"
             if c['hp'] and c['hp'].lower() != 'none':  
                 s += f"HP:{c['hp']}|"
             if c['types'] and c['types'].lower() != 'none':  
@@ -112,7 +111,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 s += f"R:{c['retreat']}|"
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':  
                 s += f"EF:{c['evolve_from']}|"
-            f.write(s[:-1] + '\n')
+            f.write(s[:-1].replace('\n','\\') + '\n')
         f.write(SUFFIX)  
   
 
