@@ -1,20 +1,18 @@
 import sqlite3
 
-def fetch_jtg_cards(db_path="pokemon_cards.db"):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from
-        FROM cards
-        WHERE regulation in ('g', 'h', 'i')
-        ORDER BY set_name, CAST(number AS INTEGER)
-    """)
-    rows = cur.fetchall()
-    conn.close()
-    return rows
+RARITIES_ORDER = [
+    'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
+    'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v',
+    'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare',
+    'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x',
+    'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar',
+    'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime',
+    'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare',
+    'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax',
+    'amazing rare'
+]
 
-suff = '''===
+SUFFIX = '''===
 Format:
 Name (Organized in deck list format, you just need to add number of the cards you want)
 HP:Health
@@ -38,15 +36,43 @@ For energy, don't need write "Basic"
 Do not write notes in the deck list or anything else in the decklist other than the cards
 Create a deck'''
 
-def write_cards_txt(cards, out_path="cards.txt"):
-    seen = {}
-    with open(out_path, 'w', encoding='utf-8') as f:
-        for c in cards:
-            key = (c['name'], c['hp'], c['types'], c['abilities'], c['attacks'], c['retreat'], c['evolve_from'])
-            if c['name'] in seen and seen[c['name']] == key:
-                continue
-            seen[c['name']] = key
 
+def fetch_jtg_cards(db_path="pokemon_cards.db"):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity
+        FROM cards
+        WHERE regulation IN ('g', 'h', 'i')
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+
+def write_cards_txt(cards, out_path="cards.txt"):
+    grouped = {}
+    for c in cards:
+        key = (
+            c['name'], c['hp'], c['types'], c['abilities'],
+            c['attacks'], c['retreat'], c['evolve_from']
+        )
+        rarity = (c['rarity'] or '').lower()
+        idx = RARITIES_ORDER.index(rarity) if rarity in RARITIES_ORDER else len(RARITIES_ORDER)
+
+        if key not in grouped:
+            grouped[key] = (c, idx)
+        else:
+            _, existing_idx = grouped[key]
+            if idx < existing_idx:
+                grouped[key] = (c, idx)
+
+    selected = [item[0] for item in grouped.values()]
+    selected.sort(key=lambda c: (c['set_name'], int(c['number'])))
+
+    with open(out_path, 'w', encoding='utf-8') as f:
+        for c in selected:
             f.write(f"{c['name']} {c['set_name'].upper()} {c['number']}\n")
             if c['hp'] and c['hp'].lower() != 'none':
                 f.write(f"HP:{c['hp']}\n")
@@ -58,14 +84,24 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 ab = c['abilities'].split("effect': '", 1)[1].split("'", 1)[0]
                 f.write(f"AB:{ab}\n")
             if c['attacks'] and c['attacks'].lower() != 'none':
-                attacks = c['attacks'][2:-2].replace('}, {', '|').replace(", 'suffix': ''", '').replace(", 'effect': none", '').replace("'amount': ", '').replace(", 'damage': none", '').replace(': ', ':').replace(', ', ',').replace("'", '')
-                attacks = attacks.replace("'cost'", "C").replace("'name'", "N").replace("'effect'", "E").replace("'damage'", "D").replace(',suffix:', '').replace('{', '').replace('}', '')
+                attacks = c['attacks'][2:-2]
+                attacks = attacks.replace('}, {', '|')\
+                                 .replace(", 'suffix': ''", '')\
+                                 .replace(", 'effect': none", '')\
+                                 .replace("'amount': ", '')\
+                                 .replace(", 'damage': none", '')\
+                                 .replace(': ', ':')\
+                                 .replace(', ', ',')\
+                                 .replace("'", '')
+                for k, abbr in [("cost", "C"), ("name", "N"), ("effect", "E"), ("damage", "D")]:
+                    attacks = attacks.replace(k, abbr)
                 f.write(f"A:{attacks}\n")
             if c['retreat'] is not None and str(c['retreat']).lower() != 'none':
                 f.write(f"R:{c['retreat']}\n")
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':
                 f.write(f"EF:{c['evolve_from']}\n")
-        f.write(suff)
+        f.write(SUFFIX)
+
 
 if __name__ == "__main__":
     cards = fetch_jtg_cards()
