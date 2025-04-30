@@ -79,18 +79,18 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
-            f.write(f"{idx}.{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|")
+            s = f"{idx}.{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|"
             if c['hp'] and c['hp'].lower() != 'none':  
-                f.write(f"HP:{c['hp']}|")  
+                s += f"HP:{c['hp']}|"
             if c['types'] and c['types'].lower() != 'none':  
-                f.write(f"T:{c['types'][2:-2]}|")  
+                s += f"T:{c['types'][2:-2]}|"
             if c['effect'] and c['effect'].lower() != 'none':  
-                f.write(f"E:{c['effect']}|")  
+                s += f"E:{c['effect']}|"
             if c['vstar_power'] and c['vstar_power'].lower() != 'none':  
-                f.write(f"V:{c['vstar_power']}|")  
+                s += f"V:{c['vstar_power']}|"
             if c['abilities'] and c['abilities'].lower() != 'none':  
                 ab = "'".join(c['abilities'].split("effect': '", 1)[1].split("'")[:-1])
-                f.write(f"AB:{ab}|")  
+                s += f"AB:{ab}|"
             if c['attacks'] and c['attacks'].lower() != 'none':  
                 attacks = c['attacks'][2:-2]  
                 attacks = (attacks.replace('}, {', '|')  
@@ -101,12 +101,12 @@ def write_cards_txt(cards, out_path="cards.txt"):
                                  .replace(', ', ',')  
                                  .replace("'", '')  
                                  .replace(",suffix:", ''))  
-                f.write(f"A:{attacks}|")  
+                s += f"A:{attacks}|"
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):  
-                f.write(f"R:{c['retreat']}|")  
+                s += f"R:{c['retreat']}|"
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':  
-                f.write(f"EF:{c['evolve_from']}|")
-            f.write('\n')
+                s += f"EF:{c['evolve_from']}|"
+            f.write(s[:-1] + '\n')
         f.write(SUFFIX)  
   
 
