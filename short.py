@@ -93,7 +93,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
             if c['vstar_power'] and c['vstar_power'].lower() != 'none':  
                 f.write(f"V:{c['vstar_power']}\n")  
             if c['abilities'] and c['abilities'].lower() != 'none':  
-                ab = c['abilities'].split("effect': '", 1)[1].split("'", 1)[0]  
+                ab = "'".join(c['abilities'].split("effect': '", 1)[1].split("'")[:-1])
                 f.write(f"AB:{ab}\n")  
             if c['attacks'] and c['attacks'].lower() != 'none':  
                 attacks = c['attacks'][2:-2]  
