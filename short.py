@@ -27,10 +27,12 @@ Energy (9)
 ```
 ===
 Notes:
+Use the Pokemon codes exactly
 Explain the synergy and strategy
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
+The X in the name list are the quantity, replace with the actual number
 Do not write notes in the deck list or anything else in the decklist other than the cards
 ===
 Create a deck'''  
@@ -75,7 +77,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                     found = True
 
 
-            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
+            f.write(f"X {c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
             if c['card_type'] and c['card_type'].lower() == 'stadium':  
                 f.write("ST\n")  
             if c['card_type'] and c['card_type'].lower() == 'item':  
