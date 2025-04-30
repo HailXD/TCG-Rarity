@@ -59,14 +59,21 @@ def write_cards_txt(cards, out_path="cards.txt"):
         grouped[key] = c  
   
     selected = list(grouped.values())  
-    selected.sort(key=lambda c: (c['set_name'], int(''.join(filter(str.isdigit, c['number'])))))  
+    selected.sort(key=lambda c: (int(''.join(filter(str.isdigit, c['number'])))))  
   
     with open(out_path, 'w', encoding='utf-8') as f:  
         for c in selected:  
-            # number remove leading zeroes before writing
-            number = ''.join(filter(str.isdigit, c['number']))
-            number = number.lstrip('0') if number else '0'
-            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {number}\n")
+            n = ''
+            found = False
+            for i in c['number'].upper():
+                if not i.isdigit():
+                    n += i
+                elif not found and i != '0':
+                    n += i
+                    found = True
+
+
+            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
             if c['card_type'] and c['card_type'].lower() == 'stadium':  
                 f.write("ST\n")  
             if c['card_type'] and c['card_type'].lower() == 'item':  
