@@ -2,7 +2,7 @@ import sqlite3
 
 SUFFIX = '''===
 Format:
-Name (Organized in deck list format, you just need to add number of the cards you want)
+ID.Name (Organized in deck list format, but you only need to know the ID)
 HP:Health
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost
@@ -11,25 +11,17 @@ V:Vstar Power
 T:Types
 EF:Evolve From
 ===
-Format of deck:
-```deck
-Pokemon (4)
-4 wingull JTG 38
-Trainer (3)
-3 professor's research JTG 155
-Energy (9)
-3 Darkness Energy (Don't need write Basic)
-6 Lightning Energy
-```
-===
 Notes:
-Use the Pokemon codes exactly
 Explain the synergy and strategy
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
-Do not hallucinate, the card ids are at the top before of their stats, just use them
-Do not write notes in the deck list or anything else in the decklist other than the cards
+===
+Return your results in the format:
+```Deck
+[ID.Count,ID.Count,...,Dark Energy.Count,Lightning Energy.Count,...]
+Names are only for energy cards that have no ID, if have ID, use ID
+```
 ===
 Create a deck'''  
 
@@ -62,7 +54,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
     selected.sort(key=lambda c: (int(''.join(filter(str.isdigit, c['number'])))))  
   
     with open(out_path, 'w', encoding='utf-8') as f:  
-        for c in selected:  
+        for idx, c in enumerate(selected):  
             n = ''
             found = False
             for i in c['number'].upper():
@@ -74,7 +66,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
-            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
+            f.write(f"{idx}.{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}\n")
             if c['hp'] and c['hp'].lower() != 'none':  
                 f.write(f"HP:{c['hp']}\n")  
             if c['types'] and c['types'].lower() != 'none':  
