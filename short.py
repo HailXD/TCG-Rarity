@@ -22,7 +22,8 @@ E:Effects
 T:Types
 EF:Evolve From
 ===
-Example of deck
+Format of deck:
+```deck
 Pokemon (4)
 4 wingull JTG 38
 Trainer (3)
@@ -30,15 +31,16 @@ Trainer (3)
 Energy (9)
 3 Darkness Energy (Don't need write Basic)
 6 Lightning Energy
+```
 ===
 Explain the synergy and strategy
 For energy, don't need write "Basic"
-Do not use pokemon outside of this list
+Do not use pokemon outside of the list
 Do not write notes in the deck list or anything else in the decklist other than the cards
 Create a deck'''
 
 
-def fetch_jtg_cards(db_path="pokemon_cards.db"):
+def fetch_cards(db_path="pokemon_cards.db"):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
@@ -46,6 +48,7 @@ def fetch_jtg_cards(db_path="pokemon_cards.db"):
         SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity
         FROM cards
         WHERE regulation IN ('g', 'h', 'i')
+        ORDER BY set_name, CAST(number AS INTEGER)
     """)
     rows = cur.fetchall()
     conn.close()
@@ -105,5 +108,5 @@ def write_cards_txt(cards, out_path="cards.txt"):
 
 
 if __name__ == "__main__":
-    cards = fetch_jtg_cards()
+    cards = fetch_cards()
     write_cards_txt(cards)
