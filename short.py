@@ -19,10 +19,16 @@ Return your results a dictionary in the format:
     "Dark Energy": Count, # (Type)
     "Lightning Energy: Count # (Type)
 }
-2758.arcanine SP 304
+{
+    ID: [Count,Name,Type],
+    ID: [Count,Name,Type],
+    "Dark Energy": [Count,Type],
+    "Lightning Energy: [Count,Type]
+}
+2758.arcanine SP 304|...
 As an example, if you wanted 3 Arcanine SP 304, that entry will look like
 {
-    2758: 4 # arcanine SP 304 (Pokemon)
+    2758: [4,arcanine SP 304,Pokemon]
 }
 ```
 ===
