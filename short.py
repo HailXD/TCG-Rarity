@@ -17,6 +17,9 @@ Format:
 Name (Organized in deck list format, you just need to add number of the cards you want)
 HP:Health
 AS:Ace Spec
+ST:Stadium
+IT:Item
+TO:Tool
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost
 E:Effects
@@ -47,7 +50,7 @@ def fetch_cards(db_path="pokemon_cards.db"):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.execute("""
-        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity
+        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type
         FROM cards
         WHERE regulation IN ('f', 'g', 'h', 'i')
         ORDER BY set_name, CAST(number AS INTEGER)
@@ -82,6 +85,12 @@ def write_cards_txt(cards, out_path="cards.txt"):
             f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {''.join(filter(str.isdigit, c['number']))}\n")
             if c['rarity'] and c['rarity'] == 'ace spec rare':
                 f.write("AS\n")
+            if c['card_type'] and c['card_type'].lower() == 'stadium':
+                f.write("ST\n")
+            if c['card_type'] and c['card_type'].lower() == 'item':
+                f.write("IT\n")
+            if c['card_type'] and c['card_type'].lower() == 'tool':
+                f.write("TO\n")
             if c['hp'] and c['hp'].lower() != 'none':
                 f.write(f"HP:{c['hp']}\n")
             if c['types'] and c['types'].lower() != 'none':
