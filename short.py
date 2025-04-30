@@ -28,7 +28,7 @@ Explain the synergy and strategy
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
-The X in the name list are the quantity, replace with the actual number
+Do not hallucinate, the card ids are at the top before of their stats, just use them
 Do not write notes in the deck list or anything else in the decklist other than the cards
 ===
 Create a deck'''  
@@ -74,7 +74,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
-            f.write(f"X {c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
+            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
             if c['hp'] and c['hp'].lower() != 'none':  
                 f.write(f"HP:{c['hp']}\n")  
             if c['types'] and c['types'].lower() != 'none':  
