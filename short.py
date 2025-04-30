@@ -28,7 +28,7 @@ Return your results a dictionary in the format:
 2758.arcanine SP 304|...
 As an example, if you wanted 3 Arcanine SP 304, that entry will look like
 {
-    2758: [4,arcanine SP 304,Pokemon]
+    2758: [4,"arcanine SP 304","Pokemon"]
 }
 ```
 ===
