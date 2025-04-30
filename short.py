@@ -68,10 +68,11 @@ def write_cards_txt(cards, out_path="cards.txt"):
             for i in c['number'].upper():
                 if not i.isdigit():
                     n += i
-                elif not found and i != '0':
-                    n += i
-                    found = True
-
+                    continue
+                if not found and i == '0':
+                    continue
+                n += i
+                found = True
 
             f.write(f"X {c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n}\n")
             if c['hp'] and c['hp'].lower() != 'none':  
