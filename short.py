@@ -100,7 +100,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 for k, abbr in [("cost", "C"), ("name", "N"), ("effect", "E"), ("damage", "D")]:
                     attacks = attacks.replace(k, abbr)
                 f.write(f"A:{attacks}\n")
-            if c['retreat'] is not None and str(c['retreat']).lower() != 'none':
+            if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):
                 f.write(f"R:{c['retreat']}\n")
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':
                 f.write(f"EF:{c['evolve_from']}\n")
