@@ -16,6 +16,7 @@ SUFFIX = '''===
 Format:
 Name (Organized in deck list format, you just need to add number of the cards you want)
 HP:Health
+AS:Ace Spec
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost
 E:Effects
@@ -79,6 +80,8 @@ def write_cards_txt(cards, out_path="cards.txt"):
     with open(out_path, 'w', encoding='utf-8') as f:
         for c in selected:
             f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {''.join(filter(str.isdigit, c['number']))}\n")
+            if c['rarity'] and c['rarity'] == 'ace spec rare':
+                f.write("AS\n")
             if c['hp'] and c['hp'].lower() != 'none':
                 f.write(f"HP:{c['hp']}\n")
             if c['types'] and c['types'].lower() != 'none':
