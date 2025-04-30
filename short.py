@@ -47,7 +47,7 @@ def fetch_cards(db_path="pokemon_cards.db"):
     cur.execute("""
         SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity
         FROM cards
-        WHERE regulation IN ('g', 'h', 'i')
+        WHERE regulation IN ('f', 'g', 'h', 'i')
         ORDER BY set_name, CAST(number AS INTEGER)
     """)
     rows = cur.fetchall()
@@ -73,11 +73,11 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 grouped[key] = (c, idx)
 
     selected = [item[0] for item in grouped.values()]
-    selected.sort(key=lambda c: (c['set_name'], int(c['number'])))
+    selected.sort(key=lambda c: (c['set_name'], int(''.join(filter(str.isdigit, c['number'])))))
 
     with open(out_path, 'w', encoding='utf-8') as f:
         for c in selected:
-            f.write(f"{c['name']} {c['set_name'].upper()} {c['number']}\n")
+            f.write(f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {''.join(filter(str.isdigit, c['number']))}\n")
             if c['hp'] and c['hp'].lower() != 'none':
                 f.write(f"HP:{c['hp']}\n")
             if c['types'] and c['types'].lower() != 'none':
