@@ -89,14 +89,14 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 f.write(f"AB:{ab}\n")
             if c['attacks'] and c['attacks'].lower() != 'none':
                 attacks = c['attacks'][2:-2]
-                attacks = attacks.replace('}, {', '|')\
-                                 .replace(", 'suffix': ''", '')\
-                                 .replace(", 'effect': none", '')\
-                                 .replace("'amount': ", '')\
-                                 .replace(", 'damage': none", '')\
-                                 .replace(': ', ':')\
-                                 .replace(', ', ',')\
-                                 .replace("'", '')
+                attacks = (attacks.replace('}, {', '|')
+                                 .replace(", 'suffix': ''", '')
+                                 .replace(", 'effect': none", '')
+                                 .replace("'amount': ", '')
+                                 .replace(", 'damage': none", '')
+                                 .replace(': ', ':')
+                                 .replace(', ', ',')
+                                 .replace("'", ''))
                 for k, abbr in [("cost", "C"), ("name", "N"), ("effect", "E"), ("damage", "D")]:
                     attacks = attacks.replace(k, abbr)
                 f.write(f"A:{attacks}\n")
