@@ -36,6 +36,7 @@ Energy (9)
 Explain the synergy and strategy
 For energy, don't need write "Basic"
 Do not use pokemon outside of the list
+If retreat cost is not written, it is 1
 Do not write notes in the deck list or anything else in the decklist other than the cards
 Create a deck'''
 
