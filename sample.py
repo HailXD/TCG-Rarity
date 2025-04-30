@@ -17,7 +17,7 @@ def main():
     rows = cursor.fetchall()
 
     for row in rows:
-        print(row)
+        print(list(row))
 
     connection.close()
 
