@@ -23,6 +23,7 @@ TO:Tool
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost
 E:Effects
+V:Vstar Power
 T:Types
 EF:Evolve From
 ===
@@ -50,7 +51,7 @@ def fetch_cards(db_path="pokemon_cards.db"):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     cur.execute("""
-        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type
+        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type, vstar_power
         FROM cards
         WHERE regulation IN ('f', 'g', 'h', 'i')
         ORDER BY set_name, CAST(number AS INTEGER)
@@ -97,21 +98,21 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 f.write(f"T:{c['types'][2:-2]}\n")
             if c['effect'] and c['effect'].lower() != 'none':
                 f.write(f"E:{c['effect']}\n")
+            if c['vstar_power'] and c['vstar_power'].lower() != 'none':
+                f.write(f"V:{c['vstar_power']}\n")
             if c['abilities'] and c['abilities'].lower() != 'none':
                 ab = c['abilities'].split("effect': '", 1)[1].split("'", 1)[0]
                 f.write(f"AB:{ab}\n")
             if c['attacks'] and c['attacks'].lower() != 'none':
                 attacks = c['attacks'][2:-2]
                 attacks = (attacks.replace('}, {', '|')
-                                 .replace(", 'suffix': ''", '')
                                  .replace(", 'effect': none", '')
                                  .replace("'amount': ", '')
                                  .replace(", 'damage': none", '')
                                  .replace(': ', ':')
                                  .replace(', ', ',')
-                                 .replace("'", ''))
-                for k, abbr in [("cost", "C"), ("name", "N"), ("effect", "E"), ("damage", "D")]:
-                    attacks = attacks.replace(k, abbr)
+                                 .replace("'", '')
+                                 .replace(",suffix:", ''))
                 f.write(f"A:{attacks}\n")
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):
                 f.write(f"R:{c['retreat']}\n")
