@@ -30,6 +30,7 @@ As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 3 Ligh
 ```
 ===
 Notes:
+Each deck should have 60 cards
 Explain the synergy and strategy
 Don't write comments in the json
 For energy, don't need write "Basic"
