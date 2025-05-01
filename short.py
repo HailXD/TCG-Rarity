@@ -33,11 +33,11 @@ Notes:
 Explain the synergy and strategy
 Don't write comments in the json
 For energy, don't need write "Basic"
-Do not use pokemon outside of the list
-If retreat cost is not written, it is 1
+Do not any cards outside of the list
 Type can be Pokemon, Trainer or Energy
+If retreat cost is not written, it is 1
 For Special Energies, classify them as "Energy"
-Names are only for energy cards that have no ID, if have ID, use ID
+Names are only for energy cards, if have set name and number, use them
 The notes does not need to be in dictionary form, it can be outside the json block
 ===
 Create a deck'''  
