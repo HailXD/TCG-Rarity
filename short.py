@@ -68,7 +68,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
         grouped[key] = c  
   
     selected = list(grouped.values())  
-    selected.sort(key=lambda c: (int(''.join(filter(str.isdigit, c['number'])))))  
+    selected.sort(key=lambda c: (c['card_type'], (int(''.join(filter(str.isdigit, c['number']))))))  
   
     with open(out_path, 'w', encoding='utf-8') as f:  
         for c in selected:  

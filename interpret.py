@@ -6,17 +6,11 @@ def read_until_double_newline():
     Strip trailing ' # comment' from each line.
     """
     lines = []
-    empty_count = 0
     for raw in sys.stdin:
-        if raw.strip() == "":
-            empty_count += 1
-            if empty_count >= 2:
-                break
-            else:
-                continue
-        empty_count = 0
         line = re.sub(r'\s+#.*$', '', raw)
         lines.append(line)
+        if '}' in raw:
+            break
     return "".join(lines)
 
 def load_deck(input_text):
@@ -59,6 +53,9 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
         if category == "Pokemon":
             groups["Pokemon"].append((count, full_key))
         elif category in ("Trainer", "Energy"):
+            parts = full_key.split(' ')
+            if parts[-1].isdigit():
+                full_key = ' '.join(parts[:-2])
             set_name, number = lookup_card(full_key, cur)
             if set_name is None:
                 sys.stderr.write(f"Warning: no entry found in DB for {full_key!r}\n")
