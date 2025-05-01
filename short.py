@@ -19,18 +19,18 @@ Return your results a dictionary in the format:
     "Energy Type": [Count, "Energy"],
 }
 ```
-As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 3 Lightning Energy, that entry will look like
+As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 1 Lightning Energy, that entry will look like
 ```json
 {
     "arcanine SP 304": [3,"Pokemon"],
-    "Iono": [3,"Trainer"],
+    "drayton": [3,"Trainer"],
     "Dark Energy": [2,"Energy"],
-    "Lightning Energy": [3,"Energy"]
+    "Lightning Energy": [1,"Energy"]
 }
 ```
 ===
 Notes:
-Each deck should have 60 cards
+Decks should have 60 cards
 Explain the synergy and strategy
 Don't write comments in the json
 For energy, don't need write "Basic"
@@ -69,7 +69,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
         grouped[key] = c  
   
     selected = list(grouped.values())  
-    selected.sort(key=lambda c: (c['card_type'], (int(''.join(filter(str.isdigit, c['number']))))))  
+    selected.sort(key=lambda c: (c['card_type'] != 'pokemon', c['set_name'], c['number']))
   
     with open(out_path, 'w', encoding='utf-8') as f:  
         for c in selected:  
