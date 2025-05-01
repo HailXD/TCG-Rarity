@@ -2,7 +2,7 @@ import sqlite3
 
 SUFFIX = '''===
 Format:
-ID.Name (Organized in deck list format, but you only need to know the ID)
+Name (Organized in deck list format, you just need to add number of the cards you want)
 HP:Health
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost
@@ -11,34 +11,25 @@ V:Vstar Power
 T:Types
 EF:Evolve From
 ===
-Return your results a dictionary in the format:
-```json
-{
-    "Pokemon ID": [Count, "Pokemon"],
-    "Trainer Name": [Count, "Trainer"],
-    "Energy Type": [Count, "Energy"],
-}
-```
-As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 3 Lightning Energy, that entry will look like
-```json
-{
-    "arcanine SP 304": [3,"Pokemon"],
-    "Iono": [3,"Trainer"],
-    "Dark Energy": [2,"Energy"],
-    "Lightning Energy": [3,"Energy"]
-}
+Format of deck:
+```deck
+Pokemon (4)
+4 wingull JTG 38
+Trainer (3)
+3 professor's research JTG 155
+Energy (9)
+3 Darkness Energy (Don't need write Basic)
+6 Lightning Energy
 ```
 ===
 Notes:
+Use the Pokemon codes exactly
 Explain the synergy and strategy
-Don't write comments in the json
 For energy, don't need write "Basic"
-Do not any cards outside of the list
-Type can be Pokemon, Trainer or Energy
+Do not use pokemon outside of the list
 If retreat cost is not written, it is 1
-For Special Energies, classify them as "Energy"
-Names are only for energy cards, if have set name and number, use them
-The notes does not need to be in dictionary form, it can be outside the json block
+The X in the name list are the quantity, replace with the actual number
+Do not write notes in the deck list or anything else in the decklist other than the cards
 ===
 Create a deck'''  
 
