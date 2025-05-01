@@ -68,11 +68,13 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
     return groups
 
 def print_deck(groups):
+    ttotal = 0
     for cat in ("Pokemon", "Trainer", "Energy"):
         entries = groups.get(cat, [])
         if not entries:
             continue
         total = sum(e[0] for e in entries)
+        ttotal += total
         print(f"{cat} – {total}")
         for e in entries:
             if cat == "Pokemon":
@@ -82,6 +84,7 @@ def print_deck(groups):
                 count, name, set_name, number = e
                 print(f"{count} {name} {set_name.upper()} {number}")
         print()
+    print(f"Total – {ttotal}")
 
 def main():
     raw = read_until_double_newline()
