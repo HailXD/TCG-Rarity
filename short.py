@@ -19,12 +19,12 @@ Return your results a dictionary in the format:
     "Energy Type": [Count, "Energy"],
 }
 ```
-As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Dark Energy and 1 Lightning Energy, that entry will look like
+As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
 ```json
 {
     "arcanine SP 304": [3,"Pokemon"],
     "drayton": [3,"Trainer"],
-    "Dark Energy": [2,"Energy"],
+    "Darkness Energy": [2,"Energy"],
     "Lightning Energy": [1,"Energy"]
 }
 ```
@@ -50,7 +50,7 @@ def fetch_cards(db_path="pokemon_cards.db"):
     cur.execute("""  
         SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type, vstar_power  
         FROM cards  
-        WHERE regulation IN ('g', 'h', 'i')  
+        WHERE regulation IN ('g', 'h', 'i', 'f')  
         ORDER BY set_name, CAST(number AS INTEGER)  
     """)  
     rows = cur.fetchall()  
