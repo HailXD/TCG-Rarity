@@ -39,6 +39,7 @@ Type can be Pokemon, Trainer or Energy
 If retreat cost is not written, it is 1
 For Special Energies, classify them as "Energy"
 Names are only for energy cards, if have set name and number, use them
+Double Check all pokemon set and card numbers before sending your response
 The notes does not need to be in dictionary form, it can be outside the json block
 ===
 Create a deck'''  
