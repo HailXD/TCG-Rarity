@@ -54,6 +54,7 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
             groups["Pokemon"].append((count, full_key))
         elif category in ("Trainer", "Energy"):
             for i in range(0, 2):
+                full_key = full_key.replace('Dark Energy', 'Darkness Energy')
                 parts = full_key.split(" ")
                 if i == 0:
                     set_name, number = lookup_card(full_key, cur)
