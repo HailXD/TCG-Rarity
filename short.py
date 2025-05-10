@@ -74,53 +74,71 @@ SHORTENED_ENERGY = {
     'fighting': 'f',
     'metal': 'm',
     'darkness': 'd',
-    'metal': 'm',
-    'colorless': 'c',    
+    'colorless': 'c',
 }
 
-def fetch_cards(db_path="pokemon_cards.db"):  
-    conn = sqlite3.connect(db_path)  
-    conn.row_factory = sqlite3.Row  
-    cur = conn.cursor()  
-    cur.execute("""  
-        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type, vstar_power  
-        FROM cards  
-        WHERE regulation IN ('g', 'h', 'i', 'f')  
-        ORDER BY set_name, CAST(number AS INTEGER)  
-    """)  
-    rows = cur.fetchall()  
-    conn.close()  
-    return rows  
-  
+# Upper-case mapping for convenience
+ENERGY_TO_LETTER = {k: v.upper() for k, v in SHORTENED_ENERGY.items()}
+
+def fetch_cards(db_path="pokemon_cards.db"):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT name, set_name, types, number, hp, effect, abilities, attacks, retreat, evolve_from, rarity, card_type, vstar_power
+        FROM cards
+        WHERE regulation IN ('g', 'h', 'i', 'f')
+        ORDER BY set_name, CAST(number AS INTEGER)
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
 def rarity_index(rarity: str) -> int:
     """Return the index of a rarity in RARITIES_ORDER, or a large number if unknown."""
     try:
         return RARITIES_ORDER.index(rarity.lower())
     except ValueError:
         return len(RARITIES_ORDER)
-    
-def write_cards_txt(cards, out_path="cards.txt"):  
-    grouped = {}  
-    for c in cards:  
-        card_type = (c['card_type'] or '').lower()  
-        if card_type == 'pokemon':  
-            key = (c['name'], c['attacks'] or '')  
+
+def _shorten_energy_names(text: str) -> str:
+    """Replace full energy names in any casing with their single-letter codes."""
+    for full, letter in ENERGY_TO_LETTER.items():
+        # Use regex for word-boundary replacement, ignore case
+        pattern = re.compile(rf'\b{full}\b', flags=re.IGNORECASE)
+        text = pattern.sub(letter, text)
+    return text
+
+def write_cards_txt(cards, out_path="cards.txt"):
+    # First, group duplicates per original logic
+    grouped = {}
+    for c in cards:
+        card_type = (c['card_type'] or '').lower()
+        if card_type == 'pokemon':
+            key = (c['name'], c['attacks'] or '')
         else:
-            key = c['effect'] or None  
+            key = c['effect'] or None
         if key is None:
-            grouped[key] = c  
+            grouped[key] = c
         else:
-            if key not in grouped:  
-                grouped[key] = c  
-            else:  
-                if rarity_index(c['rarity']) < rarity_index(grouped[key]['rarity']):  
+            if key not in grouped:
+                grouped[key] = c
+            else:
+                if rarity_index(c['rarity']) < rarity_index(grouped[key]['rarity']):
                     grouped[key] = c
-  
-    selected = list(grouped.values())  
+
+    selected = list(grouped.values())
     selected.sort(key=lambda c: (c['card_type'] != 'pokemon', c['set_name'], c['number']))
-  
-    with open(out_path, 'w', encoding='utf-8') as f:  
-        for c in selected:  
+
+    # Determine duplicates with same name & set for numbering logic
+    name_set_counts = {}
+    for c in selected:
+        if (c['card_type'] or '').lower() == 'pokemon':
+            key = (c['name'], c['set_name'])
+            name_set_counts[key] = name_set_counts.get(key, 0) + 1
+
+    with open(out_path, 'w', encoding='utf-8') as f:
+        for c in selected:
             n = ''
             found = False
             for i in c['number'].upper():
@@ -132,43 +150,71 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
+            # ----- NAME LINE (add card number if needed) -----
             if c['card_type'] == 'pokemon':
-                s = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')}|"
+                base_name = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')}"
+                if name_set_counts[(c['name'], c['set_name'])] > 1:  # multiple versions with different attacks
+                    base_name += f" {n}"
+                s = f"{base_name}|"
             else:
                 s = f"{' '.join(c['name'].split(' '))}|"
+
             if c['rarity'] == 'ace spec rare':
                 s += 'ace spec|'
-            if c['hp'] and c['hp'].lower() != 'none':  
+
+            # ----- HP -----
+            if c['hp'] and c['hp'].lower() != 'none':
                 s += f"HP:{c['hp']}|"
-            if c['types'] and c['types'].lower() != 'none':  
-                s += f"T:{c['types'][2:-2]}|"
-            if c['effect'] and c['effect'].lower() != 'none':  
+
+            # ----- TYPES (shortened) -----
+            if c['types'] and c['types'].lower() != 'none':
+                types_str = c['types'][2:-2]  # strip the outer brackets
+                types_clean = types_str.replace('"', '').replace("'", '')
+                short_types = ''.join(
+                    ENERGY_TO_LETTER.get(t.strip().lower(), t.strip()[0].upper())
+                    for t in types_clean.split(',') if t.strip()
+                )
+                s += f"T:{short_types}|"
+
+            # ----- EFFECT -----
+            if c['effect'] and c['effect'].lower() != 'none':
                 s += f"E:{c['effect']}|"
-            if c['vstar_power'] and c['vstar_power'].lower() != 'none':  
+
+            # ----- VSTAR POWER -----
+            if c['vstar_power'] and c['vstar_power'].lower() != 'none':
                 s += f"V:{c['vstar_power']}|"
-            if c['abilities'] and c['abilities'].lower() != 'none':  
+
+            # ----- ABILITIES -----
+            if c['abilities'] and c['abilities'].lower() != 'none':
                 ab = "'".join(c['abilities'].split("effect': '", 1)[1].split("'")[:-1])
                 s += f"AB:{ab}|"
-            if c['attacks'] and c['attacks'].lower() != 'none':  
-                attacks = c['attacks'][2:-2]  
-                attacks = (attacks.replace('}, {', '|')  
-                                 .replace(", 'effect': none", '')  
-                                 .replace("'amount': ", '')  
-                                 .replace(", 'damage': none", '')  
-                                 .replace(': ', ':')  
-                                 .replace(', ', ',')  
-                                 .replace("'", '')  
-                                 .replace(",suffix:", ''))  
-                
-                s += f"A:{attacks}|"
-            if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):  
-                s += f"R:{c['retreat']}|"
-            if c['evolve_from'] and c['evolve_from'].lower() != 'none':  
-                s += f"F:{c['evolve_from']}|"
-            f.write(s[:-1].replace('\n','\\') + '\n')
-        f.write(SUFFIX)  
-  
 
-if __name__ == "__main__":  
-    cards = fetch_cards()  
+            # ----- ATTACKS (shorten energy names in costs) -----
+            if c['attacks'] and c['attacks'].lower() != 'none':
+                attacks = c['attacks'][2:-2]  # strip outer brackets
+                attacks = (attacks.replace('}, {', '|')
+                                   .replace(", 'effect': none", '')
+                                   .replace("'amount': ", '')
+                                   .replace(", 'damage': none", '')
+                                   .replace(': ', ':')
+                                   .replace(', ', ',')
+                                   .replace("'", '')
+                                   .replace(",suffix:", ''))
+                # Replace full energy names with single letters
+                attacks = _shorten_energy_names(attacks)
+                s += f"A:{attacks}|"
+
+            # ----- RETREAT -----
+            if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):
+                s += f"R:{c['retreat']}|"
+
+            # ----- EVOLVE FROM -----
+            if c['evolve_from'] and c['evolve_from'].lower() != 'none':
+                s += f"F:{c['evolve_from']}|"
+
+            f.write(s[:-1].replace('\n', '\\') + '\n')
+        f.write(SUFFIX)
+
+if __name__ == "__main__":
+    cards = fetch_cards()
     write_cards_txt(cards)
