@@ -50,7 +50,7 @@ Card_Name (e.g drayton) - Used for trainers or energies since they have the same
 Card_Name Set_Name (e.g arcanine SP) - For pokemon that only has 1 type (Same attacks with different prints) in the same set
 Card_Name Set_Name Card_Number (e.g wiglett PAR 51) - For pokemon that has the same name but different types in the same set
 In the output use the name format given in the list
-Pokemon attacks cost are shortened to one letter, where: C = Colorless;G = Grass;R = Fire;W = Water;L = Lightning;P = Psychic;M = Metal;F = Fighting;D = Darkness
+Pokemon attacks cost and types are shortened to one letter, where: C = Colorless;G = Grass;R = Fire;W = Water;L = Lightning;P = Psychic;M = Metal;F = Fighting;D = Darkness
 ===
 Create a deck'''  
 
