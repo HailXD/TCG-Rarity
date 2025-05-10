@@ -190,6 +190,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
                                    .replace(', ', ',')
                                    .replace("'", '')
                                    .replace(",suffix:", ''))
+                
                 attacks = _shorten_energy_names(attacks)
                 s += f"A:{attacks}|"
 
