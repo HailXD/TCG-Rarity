@@ -9,7 +9,7 @@ R:Retreat Cost
 E:Effects
 V:Vstar Power
 T:Types
-EF:Evolve From
+F:Evolve From
 ===
 Return your results a dictionary in the format:
 ```json
@@ -87,9 +87,9 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 found = True
 
             if c['card_type'] == 'pokemon':
-                s = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')} {n.replace('SWSH', '')}|"
+                s = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')}|"
             else:
-                s = f"{c['name']}|"
+                s = f"{' '.join(c['name'].split(' '))}|"
             if c['rarity'] == 'ace spec rare':
                 s += 'ace spec|'
             if c['hp'] and c['hp'].lower() != 'none':  
@@ -117,7 +117,7 @@ def write_cards_txt(cards, out_path="cards.txt"):
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):  
                 s += f"R:{c['retreat']}|"
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':  
-                s += f"EF:{c['evolve_from']}|"
+                s += f"F:{c['evolve_from']}|"
             f.write(s[:-1].replace('\n','\\') + '\n')
         f.write(SUFFIX)  
   
