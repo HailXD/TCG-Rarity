@@ -59,16 +59,41 @@ def fetch_cards(db_path="pokemon_cards.db"):
     conn.close()  
     return rows  
   
+RARITIES_ORDER = [
+    'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
+    'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v',
+    'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare',
+    'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x',
+    'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar',
+    'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime',
+    'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare',
+    'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax',
+    'amazing rare'
+]
 
+def rarity_index(rarity: str) -> int:
+    """Return the index of a rarity in RARITIES_ORDER, or a large number if unknown."""
+    try:
+        return RARITIES_ORDER.index(rarity.lower())
+    except ValueError:
+        return len(RARITIES_ORDER)
+    
 def write_cards_txt(cards, out_path="cards.txt"):  
     grouped = {}  
     for c in cards:  
         card_type = (c['card_type'] or '').lower()  
         if card_type == 'pokemon':  
             key = (c['name'], c['attacks'] or '')  
-        else:  
+        else:
             key = c['effect'] or None  
-        grouped[key] = c  
+        if key is None:
+            grouped[key] = c  
+        else:
+            if key not in grouped:  
+                grouped[key] = c  
+            else:  
+                if rarity_index(c['rarity']) < rarity_index(grouped[key]['rarity']):  
+                    grouped[key] = c
   
     selected = list(grouped.values())  
     selected.sort(key=lambda c: (c['card_type'] != 'pokemon', c['set_name'], c['number']))
