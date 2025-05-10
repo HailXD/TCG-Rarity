@@ -78,7 +78,6 @@ SHORTENED_ENERGY = {
     'colorless': 'c',
 }
 
-# Upper-case mapping for convenience
 ENERGY_TO_LETTER = {k: v.upper() for k, v in SHORTENED_ENERGY.items()}
 
 def fetch_cards(db_path="pokemon_cards.db"):
@@ -105,13 +104,11 @@ def rarity_index(rarity: str) -> int:
 def _shorten_energy_names(text: str) -> str:
     """Replace full energy names in any casing with their single-letter codes."""
     for full, letter in ENERGY_TO_LETTER.items():
-        # Use regex for word-boundary replacement, ignore case
         pattern = re.compile(rf'\b{full}\b', flags=re.IGNORECASE)
         text = pattern.sub(letter, text)
     return text
 
 def write_cards_txt(cards, out_path="cards.txt"):
-    # First, group duplicates per original logic
     grouped = {}
     for c in cards:
         card_type = (c['card_type'] or '').lower()
@@ -131,7 +128,6 @@ def write_cards_txt(cards, out_path="cards.txt"):
     selected = list(grouped.values())
     selected.sort(key=lambda c: (c['card_type'] != 'pokemon', c['set_name'], c['number']))
 
-    # Determine duplicates with same name & set for numbering logic
     name_set_counts = {}
     for c in selected:
         if (c['card_type'] or '').lower() == 'pokemon':
@@ -151,10 +147,9 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 n += i
                 found = True
 
-            # ----- NAME LINE (add card number if needed) -----
             if c['card_type'] == 'pokemon':
                 base_name = f"{c['name']} {c['set_name'].upper().replace('PROMO_SWSH', 'SP')}"
-                if name_set_counts[(c['name'], c['set_name'])] > 1:  # multiple versions with different attacks
+                if name_set_counts[(c['name'], c['set_name'])] > 1:
                     base_name += f" {n}"
                 s = f"{base_name}|"
             else:
@@ -163,13 +158,11 @@ def write_cards_txt(cards, out_path="cards.txt"):
             if c['rarity'] == 'ace spec rare':
                 s += 'ace spec|'
 
-            # ----- HP -----
             if c['hp'] and c['hp'].lower() != 'none':
                 s += f"HP:{c['hp']}|"
 
-            # ----- TYPES (shortened) -----
             if c['types'] and c['types'].lower() != 'none':
-                types_str = c['types'][2:-2]  # strip the outer brackets
+                types_str = c['types'][2:-2]
                 types_clean = types_str.replace('"', '').replace("'", '')
                 short_types = ''.join(
                     ENERGY_TO_LETTER.get(t.strip().lower(), t.strip()[0].upper())
@@ -177,22 +170,18 @@ def write_cards_txt(cards, out_path="cards.txt"):
                 )
                 s += f"T:{short_types}|"
 
-            # ----- EFFECT -----
             if c['effect'] and c['effect'].lower() != 'none':
                 s += f"E:{c['effect']}|"
 
-            # ----- VSTAR POWER -----
             if c['vstar_power'] and c['vstar_power'].lower() != 'none':
                 s += f"V:{c['vstar_power']}|"
 
-            # ----- ABILITIES -----
             if c['abilities'] and c['abilities'].lower() != 'none':
                 ab = "'".join(c['abilities'].split("effect': '", 1)[1].split("'")[:-1])
                 s += f"AB:{ab}|"
 
-            # ----- ATTACKS (shorten energy names in costs) -----
             if c['attacks'] and c['attacks'].lower() != 'none':
-                attacks = c['attacks'][2:-2]  # strip outer brackets
+                attacks = c['attacks'][2:-2]
                 attacks = (attacks.replace('}, {', '|')
                                    .replace(", 'effect': none", '')
                                    .replace("'amount': ", '')
@@ -201,15 +190,12 @@ def write_cards_txt(cards, out_path="cards.txt"):
                                    .replace(', ', ',')
                                    .replace("'", '')
                                    .replace(",suffix:", ''))
-                # Replace full energy names with single letters
                 attacks = _shorten_energy_names(attacks)
                 s += f"A:{attacks}|"
 
-            # ----- RETREAT -----
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):
                 s += f"R:{c['retreat']}|"
 
-            # ----- EVOLVE FROM -----
             if c['evolve_from'] and c['evolve_from'].lower() != 'none':
                 s += f"F:{c['evolve_from']}|"
 
