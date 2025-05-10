@@ -2,10 +2,10 @@ import sqlite3
 
 SUFFIX = '''===
 Format:
-ID.Name (Organized in deck list format, but you only need to know the ID)
+ID.Name (Optional: Set Name)
 HP:Health
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
-R:Retreat Cost
+R:Retreat Cost(If not written, is 1)
 E:Effects
 V:Vstar Power
 T:Types
@@ -19,7 +19,7 @@ Return your results a dictionary in the format:
     "Energy Type": [Count, "Energy"],
 }
 ```
-As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
+As an example, if you wanted 3 Arcanine SP, 3 drayton, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
 ```json
 {
     "arcanine SP": [3,"Pokemon"],
@@ -27,6 +27,10 @@ As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Darkness Energy and 1 
     "Darkness Energy": [2,"Energy"],
     "Lightning Energy": [1,"Energy"]
 }
+Pokemon only need to have set names, don't need card numbers
+Trainer does not need to have set names or card numbers
+Energy does not need to have set names or card numbers
+
 ```
 ===
 Notes:
@@ -37,12 +41,8 @@ For energy, don't need write "Basic"
 Do not any cards outside of the list
 Send the deck after the explanations
 Type can be Pokemon, Trainer or Energy
-If retreat cost is not written, it is 1
 For Special Energies, classify them as "Energy"
-Names are only for energy cards, if have set name and number, use them
-Double Check all pokemon set and card numbers before sending your response
 The notes does not need to be in dictionary form, it can be outside the json block
-For Pokemon, you only need the set name, but for any other cards like trainer or energy, you only need the card name, no set name or number
 Pokemon attacks cost are shortened to one letter, where:
 C = Colorless
 G = Grass
