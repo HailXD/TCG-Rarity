@@ -82,7 +82,7 @@ def print_deck(groups):
         print(f"{cat} – {total}")
         for e in entries:
             count, name, set_name, number = e
-            print(f"{count} {' '.join(name.split(' ')[:-1])} {set_name.upper()} {number}")
+            print(f"{count} {name.replace(set_name.upper(), '')} {set_name.upper()} {number}".replace('  ', ' '))
         print()
     print(f"Total – {ttotal}")
 
