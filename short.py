@@ -42,8 +42,41 @@ Names are only for energy cards, if have set name and number, use them
 Double Check all pokemon set and card numbers before sending your response
 The notes does not need to be in dictionary form, it can be outside the json block
 As you noticed, you do not need to write the card number for pokemons, just the set name
+Pokemon attacks cost are shortened to one letter, where:
+C = Colorless
+G = Grass
+F = Fire
+W = Water
+L = Lightning
+P = Psychic
+M = Fighting
+D = Darkness
 ===
 Create a deck'''  
+
+RARITIES_ORDER = [
+    'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
+    'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v',
+    'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare',
+    'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x',
+    'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar',
+    'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime',
+    'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare',
+    'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax',
+    'amazing rare'
+]
+
+SHORTENED_ENERGY = {
+    'grass': 'g',
+    'fire': 'f',
+    'water': 'w',
+    'lightning': 'l',
+    'psychic': 'p',
+    'fighting': 'm',
+    'darkness': 'd',
+    'metal': 'm',
+    'colorless': 'c',    
+}
 
 def fetch_cards(db_path="pokemon_cards.db"):  
     conn = sqlite3.connect(db_path)  
@@ -59,18 +92,6 @@ def fetch_cards(db_path="pokemon_cards.db"):
     conn.close()  
     return rows  
   
-RARITIES_ORDER = [
-    'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
-    'rainbow rare', 'rare holo ex', 'rare secret', 'shiny rare', 'holo rare v',
-    'illustration rare', 'double rare', 'rare holo gx', 'special illustration rare',
-    'holo rare vmax', 'trainer gallery holo rare', 'hyper rare', 'rare holo lv.x',
-    'trainer gallery holo rare v', 'ace spec rare', 'rare shiny gx', 'holo rare vstar',
-    'trainer gallery ultra rare', 'rare break', 'rare prism star', 'rare prime',
-    'rare holo star', 'legend', 'rare shining', 'shiny rare v or vmax', 'radiant rare',
-    'shiny ultra rare', 'trainer gallery secret rare', 'trainer gallery holo rare v or vmax',
-    'amazing rare'
-]
-
 def rarity_index(rarity: str) -> int:
     """Return the index of a rarity in RARITIES_ORDER, or a large number if unknown."""
     try:
@@ -138,6 +159,10 @@ def write_cards_txt(cards, out_path="cards.txt"):
                                  .replace(', ', ',')  
                                  .replace("'", '')  
                                  .replace(",suffix:", ''))  
+                
+                for s in SHORTENED_ENERGY:
+                    if s in attacks:
+                        attacks = attacks.replace(s, SHORTENED_ENERGY[s])
                 s += f"A:{attacks}|"
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):  
                 s += f"R:{c['retreat']}|"
