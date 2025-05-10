@@ -2,7 +2,7 @@ import sqlite3
 
 SUFFIX = '''===
 Format:
-ID.Name (Optional: Set Name, e.g drayton, )
+Name
 HP:Health
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost(If not written, is 1)
@@ -19,10 +19,11 @@ Return your results a dictionary in the format:
     "Energy Type": [Count, "Energy"],
 }
 ```
-As an example, if you wanted 3 Arcanine SP, 3 drayton, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
+As an example, if you wanted 3 Arcanine SP, 1 Wiglett PAR 51, 3 drayton, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
 ```json
 {
     "arcanine SP": [3,"Pokemon"],
+    "wiglett PAR 51": [1, "Pokemon"],
     "drayton": [3,"Trainer"],
     "Darkness Energy": [2,"Energy"],
     "Lightning Energy": [1,"Energy"]
@@ -42,16 +43,13 @@ Do not any cards outside of the list
 Send the deck after the explanations
 Type can be Pokemon, Trainer or Energy
 For Special Energies, classify them as "Energy"
-The notes does not need to be in dictionary form, it can be outside the json block
-Pokemon attacks cost are shortened to one letter, where:
-C = Colorless
-G = Grass
-F = Fire
-W = Water
-L = Lightning
-P = Psychic
-M = Fighting
-D = Darkness
+The notes does not need to be in dictionary form, it should be outside the json block
+Card Names Can be in 3 formats:
+Card_Name (e.g drayton) - Used for trainers or energies since they have the same effect regardless of set
+Card_Name Set_Name (e.g arcanine SP) - For pokemon that only has 1 type (Same attacks with different prints) in the same set
+Card_Name Set_Name Card_Number (e.g wiglett PAR 51) - For pokemon that has the same name but different types in the same set
+In the output use the name format given in the list
+Pokemon attacks cost are shortened to one letter, where: C = Colorless;G = Grass;R = Fire;W = Water;L = Lightning;P = Psychic;M = Metal;F = Fighting;D = Darkness
 ===
 Create a deck'''  
 
@@ -69,11 +67,12 @@ RARITIES_ORDER = [
 
 SHORTENED_ENERGY = {
     'grass': 'g',
-    'fire': 'f',
+    'fire': 'r',
     'water': 'w',
     'lightning': 'l',
     'psychic': 'p',
-    'fighting': 'm',
+    'fighting': 'f',
+    'metal': 'm',
     'darkness': 'd',
     'metal': 'm',
     'colorless': 'c',    
