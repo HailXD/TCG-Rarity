@@ -51,6 +51,9 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
             parts = full_key.split(" ")
             name = ' '.join(parts[:-1])
             set_name = parts[-1]
+            if set_name.isdigit():
+                groups[category].append((count, full_key, '', ''))
+                continue
             set_name, number = lookup_card(name, cur, set_name=set_name)
 
         elif category in ("Trainer", "Energy"):
