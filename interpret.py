@@ -32,7 +32,7 @@ def lookup_card(name, cursor, set_name=None):
     cursor.execute("""
         SELECT set_name, number, date, card_type
           FROM cards
-        WHERE name = ? AND (rarity IS NULL OR rarity IN ('common', 'uncommon', 'ace spec rare', 'rare'))
+        WHERE name = ? AND (rarity IS NULL OR rarity IN ('common', 'uncommon', 'ace spec rare', 'rare', rare holo))
       ORDER BY date ASC
     """, (name.lower(),))
     rows = cursor.fetchall()
