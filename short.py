@@ -52,6 +52,9 @@ Card_Name Set_Name Card_Number (e.g wiglett PAR 51) - For pokemon that has the s
 In the output use the name format given in the list
 Pokemon attacks cost and types are shortened to one letter, where: C = Colorless;G = Grass;R = Fire;W = Water;L = Lightning;P = Psychic;M = Metal;F = Fighting;D = Darkness
 ===
+OVERIDES:
+ONLYDECK (No Explanations, only return json): Y
+===
 Create a deck'''  
 
 RARITIES_ORDER = [
