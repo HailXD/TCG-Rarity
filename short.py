@@ -29,7 +29,7 @@ As an example, if you wanted 3 Arcanine SP, 1 Wiglett PAR 51, 3 drayton, 2 Darkn
     "Darkness Energy": [2,"Energy"],
     "Lightning Energy": [1,"Energy"]
 }
-Pokemon only need to have set names, don't need card numbers
+Pokemon must have set names, while card numbers are only needed when there are multiple versions of the same card in the same set
 Trainer does not need to have set names or card numbers
 Energy does not need to have set names or card numbers
 
