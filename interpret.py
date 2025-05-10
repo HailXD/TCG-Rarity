@@ -51,7 +51,6 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
             parts = full_key.split(" ")
             name = ' '.join(parts[:-1])
             set_name = parts[-1]
-            print(set_name)
             set_name, number = lookup_card(name, cur, set_name=set_name)
 
         elif category in ("Trainer", "Energy"):
@@ -83,7 +82,7 @@ def print_deck(groups):
         print(f"{cat} – {total}")
         for e in entries:
             count, name, set_name, number = e
-            print(f"{count} {name} {set_name.upper()} {number}")
+            print(f"{count} {' '.join(name.split(' ')[:-1])} {set_name.upper()} {number}")
         print()
     print(f"Total – {ttotal}")
 
