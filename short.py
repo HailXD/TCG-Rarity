@@ -2,7 +2,7 @@ import sqlite3
 
 SUFFIX = '''===
 Format:
-ID.Name (Optional: Set Name)
+ID.Name (Optional: Set Name, e.g drayton, )
 HP:Health
 A:Attacks(C:Cost,N:Name,E:Effect,D:Damage,S:Suffix)
 R:Retreat Cost(If not written, is 1)
@@ -161,9 +161,6 @@ def write_cards_txt(cards, out_path="cards.txt"):
                                  .replace("'", '')  
                                  .replace(",suffix:", ''))  
                 
-                for s in SHORTENED_ENERGY:
-                    if s in attacks:
-                        attacks = attacks.replace(s, SHORTENED_ENERGY[s])
                 s += f"A:{attacks}|"
             if c['retreat'] is not None and str(c['retreat']).lower() not in ('none', '1'):  
                 s += f"R:{c['retreat']}|"
