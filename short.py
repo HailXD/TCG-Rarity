@@ -42,7 +42,7 @@ For Special Energies, classify them as "Energy"
 Names are only for energy cards, if have set name and number, use them
 Double Check all pokemon set and card numbers before sending your response
 The notes does not need to be in dictionary form, it can be outside the json block
-As you noticed, you do not need to write the card number for pokemons, just the set name
+For Pokemon, you only need the set name, but for any other cards like trainer or energy, you only need the card name, no set name or number
 Pokemon attacks cost are shortened to one letter, where:
 C = Colorless
 G = Grass

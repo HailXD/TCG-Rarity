@@ -54,7 +54,7 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
             set_name, number = lookup_card(name, cur, set_name=set_name)
 
         elif category in ("Trainer", "Energy"):
-            for i in range(0, 2):
+            for i in range(0, 3):
                 full_key = full_key.replace('Dark Energy', 'Darkness Energy')
                 parts = full_key.split(" ")
                 if i == 0:
