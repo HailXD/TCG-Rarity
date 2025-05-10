@@ -1,4 +1,5 @@
 import sqlite3
+import re
 
 SUFFIX = '''===
 Format:
@@ -40,7 +41,7 @@ Explain the synergy and strategy
 Don't write comments in the json
 For energy, don't need write "Basic"
 Do not any cards outside of the list
-Send the deck after the explanations
+Send the deck before the explanations
 Type can be Pokemon, Trainer or Energy
 For Special Energies, classify them as "Energy"
 The notes does not need to be in dictionary form, it should be outside the json block
