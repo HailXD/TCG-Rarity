@@ -14,7 +14,7 @@ EF:Evolve From
 Return your results a dictionary in the format:
 ```json
 {
-    "Pokemon ID": [Count, "Pokemon"],
+    "Pokemon Set_Name": [Count, "Pokemon"],
     "Trainer Name": [Count, "Trainer"],
     "Energy Type": [Count, "Energy"],
 }
@@ -22,7 +22,7 @@ Return your results a dictionary in the format:
 As an example, if you wanted 3 Arcanine SP 304, 3 Iono, 2 Darkness Energy and 1 Lightning Energy, that entry will look like
 ```json
 {
-    "arcanine SP 304": [3,"Pokemon"],
+    "arcanine SP": [3,"Pokemon"],
     "drayton": [3,"Trainer"],
     "Darkness Energy": [2,"Energy"],
     "Lightning Energy": [1,"Energy"]
@@ -41,6 +41,7 @@ For Special Energies, classify them as "Energy"
 Names are only for energy cards, if have set name and number, use them
 Double Check all pokemon set and card numbers before sending your response
 The notes does not need to be in dictionary form, it can be outside the json block
+As you noticed, you do not need to write the card number for pokemons, just the set name
 ===
 Create a deck'''  
 

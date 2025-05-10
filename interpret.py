@@ -1,10 +1,6 @@
 import sys, sqlite3, ast, re
 
 def read_until_double_newline():
-    """
-    Read from stdin until two consecutive blank lines are encountered.
-    Strip trailing ' # comment' from each line.
-    """
     lines = []
     for raw in sys.stdin:
         line = re.sub(r'\s+#.*$', '', raw)
@@ -14,10 +10,6 @@ def read_until_double_newline():
     return "".join(lines)
 
 def load_deck(input_text):
-    """
-    Safely parse the dict literal from input_text.
-    Expecting: { "card name": [count, "Category"], ... }
-    """
     try:
         deck = ast.literal_eval(input_text)
         if not isinstance(deck, dict):
@@ -26,12 +18,17 @@ def load_deck(input_text):
     except Exception as e:
         sys.exit(f"Failed to parse deck list: {e}")
 
-def lookup_card(name, cursor):
-    """
-    Find all cards matching exactly `name` in the 'cards' table,
-    ordered by date, and return the last (most recent) row's
-    (set_name, number). Returns (None, None) if not found.
-    """
+def lookup_card(name, cursor, set_name=None):
+    if set_name is not None:
+        cursor.execute("""
+            SELECT set_name, number
+              FROM cards
+            WHERE name = ? AND set_name = ?
+        """, (name.lower(), set_name))
+        rows = cursor.fetchall()
+        if rows:
+            return rows[0][0], rows[0][1]
+    
     cursor.execute("""
         SELECT set_name, number, date, card_type
           FROM cards
@@ -51,7 +48,11 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
 
     for full_key, (count, category) in deck_dict.items():
         if category == "Pokemon":
-            groups["Pokemon"].append((count, full_key))
+            parts = full_key.split(" ")
+            name = ' '.join(parts[:-2])
+            set_name = parts[-2]
+            set_name, number = lookup_card(name, cur, set_name=set_name)
+
         elif category in ("Trainer", "Energy"):
             for i in range(0, 2):
                 full_key = full_key.replace('Dark Energy', 'Darkness Energy')
@@ -65,9 +66,7 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
             if set_name is None:
                 sys.stderr.write(f"Warning: no entry found in DB for {full_key!r}\n")
                 continue
-            groups[category].append((count, full_key, set_name, number))
-        else:
-            sys.stderr.write(f"Warning: unsupported category {category!r} for {full_key!r}\n")
+        groups[category].append((count, full_key, set_name, number))
 
     conn.close()
     return groups
@@ -82,12 +81,8 @@ def print_deck(groups):
         ttotal += total
         print(f"{cat} – {total}")
         for e in entries:
-            if cat == "Pokemon":
-                count, full = e
-                print(f"{count} {full}")
-            else:
-                count, name, set_name, number = e
-                print(f"{count} {name} {set_name.upper()} {number}")
+            count, name, set_name, number = e
+            print(f"{count} {name} {set_name.upper()} {number}")
         print()
     print(f"Total – {ttotal}")
 
