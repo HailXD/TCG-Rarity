@@ -35,6 +35,7 @@ Explain the synergy and strategy
 Don't write comments in the json
 For energy, don't need write "Basic"
 Do not any cards outside of the list
+Send the deck after the explanations
 Type can be Pokemon, Trainer or Energy
 If retreat cost is not written, it is 1
 For Special Energies, classify them as "Energy"
