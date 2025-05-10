@@ -24,7 +24,7 @@ def lookup_card(name, cursor, set_name=None):
             SELECT set_name, number
               FROM cards
             WHERE name = ? AND set_name = ?
-        """, (name.lower(), set_name))
+        """, (name.lower(), set_name.lower()))
         rows = cursor.fetchall()
         if rows:
             return rows[0][0], rows[0][1]
@@ -49,8 +49,9 @@ def compile_deck(deck_dict, db_path="pokemon_cards.db"):
     for full_key, (count, category) in deck_dict.items():
         if category == "Pokemon":
             parts = full_key.split(" ")
-            name = ' '.join(parts[:-2])
-            set_name = parts[-2]
+            name = ' '.join(parts[:-1])
+            set_name = parts[-1]
+            print(set_name)
             set_name, number = lookup_card(name, cur, set_name=set_name)
 
         elif category in ("Trainer", "Energy"):
