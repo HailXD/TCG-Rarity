@@ -55,7 +55,7 @@ Pokemon attacks cost and types are shortened to one letter, where: C = Colorless
 OVERIDES:
 ONLYDECK (No Explanations, only return json): Y
 ===
-Create a deck'''  
+Create a deck with the characteristics: '''  
 
 RARITIES_ORDER = [
     'common', 'uncommon', 'rare', 'rare holo', 'promo', 'ultra rare', 'no rarity',
